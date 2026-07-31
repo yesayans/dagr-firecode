@@ -35,11 +35,21 @@ export default function HomePage() {
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    const q = query.trim();
+    // Don't open the results panel for an empty query — it used to cover
+    // the "Analyze your own data" section underneath.
+    if (!q) {
+      setResults([]);
+      setOpen(false);
+      setSearching(false);
+      setSearchError(null);
+      return;
+    }
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
       setSearchError(null);
       try {
-        const apps = await searchApps(query);
+        const apps = await searchApps(q);
         setResults(apps);
         setOpen(true);
       } catch (err) {
@@ -47,6 +57,7 @@ export default function HomePage() {
           err instanceof Error ? err.message : "Failed to search apps",
         );
         setResults([]);
+        setOpen(true);
       } finally {
         setSearching(false);
       }
@@ -118,10 +129,10 @@ export default function HomePage() {
       </header>
 
       <section
-        className="animate-fade-up mt-12 space-y-6"
+        className="animate-fade-up relative z-10 mt-12 space-y-6"
         style={{ animationDelay: "80ms" }}
       >
-        <div ref={wrapRef} className="relative">
+        <div ref={wrapRef} className="space-y-2">
           <label
             htmlFor="app-search"
             className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500"
@@ -139,7 +150,11 @@ export default function HomePage() {
                 setQuery(e.target.value);
                 setSelected(null);
               }}
-              onFocus={() => setOpen(true)}
+              onFocus={() => {
+                if (query.trim() && (results.length > 0 || searchError)) {
+                  setOpen(true);
+                }
+              }}
               className="w-full rounded-xl border border-white/12 bg-zinc-900/80 px-5 py-4 text-lg text-white outline-none ring-0 placeholder:text-zinc-600 focus:border-teal-400/50 focus:shadow-[0_0_0_3px_rgba(45,212,191,0.12)]"
             />
             {searching && (
@@ -149,17 +164,20 @@ export default function HomePage() {
             )}
           </div>
 
-          {open && (results.length > 0 || searchError || (!searching && query)) && (
+          {/* In-flow panel (not absolute) so it pushes the custom-upload section
+              down instead of covering it. */}
+          {open && query.trim() && (results.length > 0 || searchError || !searching) && (
             <ul
               role="listbox"
-              className="absolute z-20 mt-2 max-h-80 w-full overflow-auto rounded-xl border border-white/10 bg-zinc-950/95 py-2 shadow-2xl backdrop-blur"
+              className="max-h-72 w-full overflow-auto rounded-xl border border-white/10 bg-zinc-950 py-2 shadow-xl ring-1 ring-white/5"
             >
               {searchError && (
                 <li className="px-4 py-3 text-sm text-red-300">{searchError}</li>
               )}
-              {!searchError && results.length === 0 && (
+              {!searchError && !searching && results.length === 0 && (
                 <li className="px-4 py-3 text-sm text-zinc-500">
-                  No apps matched “{query}”.
+                  No apps matched “{query}”. Use the form below to upload your
+                  own reviews instead.
                 </li>
               )}
               {results.map((app) => (
@@ -315,7 +333,7 @@ export default function HomePage() {
       </section>
 
       <section
-        className="animate-fade-up mt-14"
+        className="animate-fade-up relative z-0 mt-14"
         style={{ animationDelay: "140ms" }}
       >
         <div className="mb-4 flex items-center gap-3">
