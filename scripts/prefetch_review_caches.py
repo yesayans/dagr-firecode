@@ -15,6 +15,7 @@ APPS = [
     ("com.ichi2.anki", "AnkiDroid"),
     ("org.isoron.uhabits", "Loop Habit Tracker"),
     ("org.wordpress.android", "WordPress"),
+    ("org.wikipedia", "Wikipedia"),
 ]
 
 

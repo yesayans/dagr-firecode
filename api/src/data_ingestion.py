@@ -189,7 +189,7 @@ class ReviewScraper:
                 )
             degraded.append(f"HF fetch failed and no cache: {e}")
             return ReviewFetchResult(
-                df=self._empty(), degraded=degraded, provenance="parquet_cache"
+                df=self._empty(), degraded=degraded, provenance="hf"
             )
 
     def _write_cache(
@@ -251,24 +251,37 @@ class ReviewScraper:
         return out.head(max_reviews).reset_index(drop=True)
 
     def _load_from_hf(self, package_name: str, max_reviews: int) -> pd.DataFrame:
-        from datasets import load_dataset
+        try:
+            from datasets import load_dataset
+        except Exception as e:
+            raise RuntimeError(
+                f"HuggingFace datasets unavailable ({e}). "
+                "Install api/requirements.txt and ensure no broken torch install "
+                "is present in the venv."
+            ) from e
 
         ds_name = self.settings.hf_dataset
-        # Streaming filter to avoid full download when possible
+        # Streaming filter to avoid full download when possible. Cap the scan so
+        # a rare package cannot walk the entire corpus unbounded.
+        target = max(max_reviews * 4, max_reviews)
+        max_scan = 400_000
         try:
             ds = load_dataset(ds_name, split="train", streaming=True)
-            rows = []
+            rows: list[dict[str, Any]] = []
+            scanned = 0
             for row in ds:
+                scanned += 1
                 pkg = (
                     row.get("package_name")
                     or row.get("appId")
                     or row.get("app_id")
                     or ""
                 )
-                if pkg != package_name:
-                    continue
-                rows.append(row)
-                if len(rows) >= max_reviews * 4:
+                if pkg == package_name:
+                    rows.append(dict(row))
+                    if len(rows) >= target:
+                        break
+                if scanned >= max_scan and not rows:
                     break
             raw = pd.DataFrame(rows)
         except Exception:
