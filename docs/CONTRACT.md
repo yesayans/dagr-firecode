@@ -205,6 +205,37 @@ Response: `{ "job_id": "<uuid>", "status": "queued" }`
 ### `GET /jobs/{job_id}`
 Response: `Job`.
 
+### `POST /jobs/{job_id}/chat`
+Evidence-grounded Q&A on a **completed** job. Answers may use only that job’s
+gaps, linked evidence snippets, and roadmap fields already stored on the job.
+Requires a configured LLM (`OPENROUTER_API_KEY` / Autorouter).
+
+Request:
+```json
+{
+  "message": "What should we prioritize?",
+  "history": [
+    { "role": "user", "content": "..." },
+    { "role": "assistant", "content": "..." }
+  ]
+}
+```
+`history` is optional; last 8 turns are kept. Stateless — client sends history.
+
+Response:
+```json
+{
+  "answer": "…",
+  "citations": [
+    { "gap_rank": 1, "evidence_id": "rev-abc", "quote": "…" }
+  ],
+  "model": "gemini-2.5-flash"
+}
+```
+
+Errors: `404` unknown job, `409` job not completed, `503` LLM not configured,
+`502` upstream LLM failure.
+
 ### Types
 
 ```ts
@@ -309,6 +340,12 @@ interface Job {
     review_window_start: string; // ISO-8601
     review_window_end: string;
     reference_date: string;      // === review_window_end
+    charts?: {
+      period: "year";                         // always yearly buckets
+      reviews_by_period: { period: string; count: number }[]; // "2014", …
+      rating_histogram: { stars: number; count: number }[];
+      need_bearing: { need_bearing: number; other: number };
+    };
   };
   gaps: Gap[];
   created_at: string;

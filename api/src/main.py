@@ -12,10 +12,12 @@ from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Query, 
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from src.chat import ChatTurn, answer_job_chat
 from src.config import get_settings
 from src.data_ingestion import ReviewScraper
 from src.pipeline import AnalysisPipeline, config_hash
 from src.resolver import RoadmapResolver, _split_urls
+from src.review_charts import build_review_charts
 from src.store import get_store, load_catalog, reset_store_singleton
 
 logger = logging.getLogger("dagr")
@@ -33,6 +35,16 @@ class AnalyzeRequest(BaseModel):
     app_id: str
     max_reviews: int = Field(default=2000, ge=10, le=5000)
     force: bool = False
+
+
+class ChatHistoryItem(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=4000)
+    history: list[ChatHistoryItem] = Field(default_factory=list)
 
 
 def _public_app(app: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -306,6 +318,42 @@ def analyze(body: AnalyzeRequest, background: BackgroundTasks) -> dict[str, Any]
     return {"job_id": job["id"], "status": "queued"}
 
 
+def _job_charts(job: dict[str, Any], stats: dict[str, Any]) -> dict[str, Any]:
+    """Return charts from stats, or backfill from the review parquet cache."""
+    charts = stats.get("charts")
+    # Prefer yearly series; rebuild older month buckets from the review cache.
+    if (
+        isinstance(charts, dict)
+        and charts.get("period") == "year"
+        and isinstance(charts.get("reviews_by_period"), list)
+        and len(charts["reviews_by_period"]) > 0
+    ):
+        return charts
+    app = job.get("app") or {}
+    package = app.get("package_name")
+    if not package:
+        return build_review_charts(None)
+    try:
+        settings = get_settings()
+        scraper = ReviewScraper(settings)
+        path = scraper.cache_path(str(package))
+        if not path.exists():
+            return build_review_charts(None)
+        import pandas as pd
+
+        df = pd.read_parquet(path)
+        max_n = int(stats.get("total_reviews") or stats.get("reviews_total") or 2000)
+        if len(df) > max_n:
+            df = df.head(max_n)
+        return build_review_charts(
+            df,
+            reviews_need_bearing=int(stats.get("reviews_need_bearing") or 0),
+        )
+    except Exception as e:
+        logger.warning("chart backfill failed for %s: %s", job.get("id"), e)
+        return build_review_charts(None)
+
+
 @app.get("/jobs/{job_id}")
 def get_job(job_id: str) -> dict[str, Any]:
     store = get_store()
@@ -341,10 +389,53 @@ def get_job(job_id: str) -> dict[str, Any]:
             "review_window_start": stats.get("review_window_start"),
             "review_window_end": stats.get("review_window_end"),
             "reference_date": stats.get("reference_date"),
+            "charts": _job_charts(job, stats),
         },
         "gaps": job.get("gaps") or [],
         "created_at": job.get("created_at"),
         "completed_at": job.get("completed_at"),
+    }
+
+
+@app.post("/jobs/{job_id}/chat")
+async def job_chat(job_id: str, body: ChatRequest) -> dict[str, Any]:
+    """Evidence-grounded Q&A over a completed job's gaps and citations."""
+    settings = get_settings()
+    store = get_store(settings)
+    job = store.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="job not found")
+    if job.get("status") != "completed":
+        raise HTTPException(
+            status_code=409,
+            detail=f"job is {job.get('status')}; chat requires completed",
+        )
+    if not settings.llm_enabled:
+        raise HTTPException(
+            status_code=503,
+            detail="LLM is not configured (OPENROUTER_API_KEY / Autorouter)",
+        )
+
+    history: list[ChatTurn] = []
+    for h in body.history[-8:]:
+        role = h.role if h.role in ("user", "assistant") else None
+        if not role or not (h.content or "").strip():
+            continue
+        history.append(ChatTurn(role=role, content=h.content.strip()))
+
+    try:
+        reply = await answer_job_chat(
+            job, body.message, history=history, settings=settings
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+
+    return {
+        "answer": reply.answer,
+        "citations": [c.model_dump() for c in reply.citations],
+        "model": reply.model,
     }
 
 

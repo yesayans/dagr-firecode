@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Outfit } from "next/font/google";
 import { DataModeIndicator } from "@/components/DataModeIndicator";
+import { SiteControls } from "@/components/SiteControls";
+import { Providers } from "@/components/Providers";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -27,12 +29,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" data-theme="light" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('dagr-theme');if(t!=='dark'&&t!=='light')t='light';var r=document.documentElement;r.dataset.theme=t;r.classList.toggle('dark',t==='dark');r.style.colorScheme=t;}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body
         className={`${outfit.variable} ${plexMono.variable} min-h-screen antialiased`}
       >
-        {children}
-        <DataModeIndicator />
+        <Providers>
+          <SiteControls />
+          {children}
+          <DataModeIndicator />
+        </Providers>
       </body>
     </html>
   );

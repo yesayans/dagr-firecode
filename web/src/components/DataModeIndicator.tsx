@@ -27,7 +27,7 @@ export function DataModeIndicator() {
 
   return (
     <div
-      className="fixed bottom-4 right-4 z-50 rounded-md bg-emerald-500/20 px-3 py-1.5 font-mono text-[11px] font-medium uppercase tracking-wider text-emerald-200 shadow-lg ring-1 ring-emerald-500/40"
+      className="fixed bottom-4 right-4 z-50 rounded-md bg-emerald-500/15 px-3 py-1.5 font-mono text-[11px] font-medium uppercase tracking-wider text-emerald-800 shadow-lg ring-1 ring-emerald-500/40 dark:text-emerald-200"
       title="Talking to live API"
     >
       data: live

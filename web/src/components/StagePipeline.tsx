@@ -31,20 +31,23 @@ export function StagePipeline({
       <div>
         <div className="mb-2 flex items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
               Pipeline
             </p>
-            <p className="mt-1 text-lg font-medium text-white">
+            <p className="mt-1 text-lg font-medium text-[var(--foreground)]">
               {LABELS[stage]}
             </p>
           </div>
-          <p className="font-mono text-3xl font-semibold tabular-nums text-teal-300">
+          <p className="font-mono text-3xl font-semibold tabular-nums text-[var(--accent)]">
             {Math.round(progress)}%
           </p>
         </div>
-        <div className="h-2.5 overflow-hidden rounded-full bg-white/10">
+        <div
+          className="h-2.5 overflow-hidden rounded-full"
+          style={{ background: "var(--chart-track)" }}
+        >
           <div
-            className="h-full rounded-full bg-gradient-to-r from-teal-500 to-cyan-300 transition-[width] duration-500 ease-out"
+            className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-500 ease-out"
             style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
           />
         </div>
@@ -59,13 +62,13 @@ export function StagePipeline({
               key={s}
               className={`rounded-md border px-3 py-2.5 text-sm transition ${
                 current
-                  ? "border-teal-400/50 bg-teal-500/10 text-teal-200"
+                  ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]"
                   : done
-                    ? "border-white/10 bg-white/5 text-zinc-300"
-                    : "border-white/5 bg-black/20 text-zinc-600"
+                    ? "border-[var(--border)] bg-[var(--surface-muted)] text-[var(--foreground)]"
+                    : "border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)]"
               }`}
             >
-              <span className="font-mono text-[10px] text-zinc-500">
+              <span className="font-mono text-[10px] text-[var(--muted)]">
                 {String(i + 1).padStart(2, "0")}
               </span>
               <p className="mt-0.5 font-medium leading-snug">{LABELS[s]}</p>

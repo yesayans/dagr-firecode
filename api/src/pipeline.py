@@ -19,6 +19,7 @@ from src.llm_extractor import ExtractedGap, LatentNeedExtractor
 from src.matching_space import build_matching_space
 from src.need_filter import select_need_bearing
 from src.resolver import RoadmapResolver
+from src.review_charts import build_review_charts
 from src.store import Store
 
 StageCallback = Callable[[str, int, dict[str, Any] | None], None]
@@ -281,6 +282,10 @@ class AnalysisPipeline:
                     else 0
                 ),
                 "review_provenance": review_provenance,
+                "charts": build_review_charts(
+                    reviews_df,
+                    reviews_need_bearing=need_stats["reviews_need_bearing"],
+                ),
                 **window_meta,
             }
             summary = _summary_text(roadmap_source, written)

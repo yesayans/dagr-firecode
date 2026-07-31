@@ -8,6 +8,8 @@ import type {
   AnalyzeRequest,
   AnalyzeResponse,
   App,
+  ChatRequest,
+  ChatResponse,
   HealthResponse,
   Job,
   ResolveAppRequest,
@@ -304,4 +306,49 @@ export async function getJob(id: string): Promise<Job> {
       throw new Error(`Unknown mock job: ${id}`);
     },
   );
+}
+
+export async function postJobChat(
+  jobId: string,
+  body: ChatRequest,
+): Promise<ChatResponse> {
+  if (FORCE_MOCK || getDataMode() === "mock") {
+    setMode("mock");
+    await delay(350);
+    const gap = (
+      mockRuns.get(jobId)?.job ??
+      (await import("./mocks")).MOCK_JOBS[jobId]
+    )?.gaps?.[0];
+    return {
+      answer:
+        "From this job’s evidence, the strongest signal is the top-ranked gap. " +
+        "Prioritize it if confidence and review density stay high — this is a mock reply.",
+      citations: gap
+        ? [
+            {
+              gap_rank: gap.rank,
+              evidence_id: gap.evidence[0]?.evidence_id ?? null,
+              quote: gap.evidence[0]?.snippet ?? gap.one_sentence_summary,
+            },
+          ]
+        : [],
+      model: "mock",
+    };
+  }
+
+  const res = await fetch(`${BASE_URL}/jobs/${jobId}/chat`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `API ${res.status} for /jobs/${jobId}/chat`);
+  }
+  setMode("live");
+  return res.json() as Promise<ChatResponse>;
 }

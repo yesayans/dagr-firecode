@@ -33,17 +33,20 @@ function EvidenceRow({ item }: { item: EvidenceItem }) {
   if (item.source_type === "review") {
     const stars = starsFromPayload(item.payload);
     return (
-      <li className="rounded-md border border-white/8 bg-white/[0.03] px-4 py-3">
-        <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400">
+      <li className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--muted)]">
           {stars !== null && (
-            <span className="font-mono text-amber-300/90">{stars}★</span>
+            <span
+              className="font-mono font-semibold"
+              style={{ color: "var(--star)" }}
+            >
+              {stars}★
+            </span>
           )}
-          <span className="font-mono text-zinc-500">
-            review {reviewIdFrom(item)}
-          </span>
+          <span className="font-mono">review {reviewIdFrom(item)}</span>
         </div>
         {item.snippet && (
-          <p className="mt-2 text-sm leading-relaxed text-zinc-200">
+          <p className="mt-2 text-sm leading-relaxed text-[var(--foreground)]">
             “{item.snippet}”
           </p>
         )}
@@ -59,15 +62,15 @@ function EvidenceRow({ item }: { item: EvidenceItem }) {
   const body = (
     <>
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-medium text-zinc-100">
+        <p className="text-sm font-medium text-[var(--foreground)]">
           {item.title ?? "Untitled"}
         </p>
         {isLink && item.url && (
-          <span className="shrink-0 text-xs text-teal-400">↗</span>
+          <span className="shrink-0 text-xs text-[var(--accent)]">↗</span>
         )}
       </div>
       {item.snippet && (
-        <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">
+        <p className="mt-1.5 text-sm leading-relaxed text-[var(--muted)]">
           {item.snippet}
         </p>
       )}
@@ -81,7 +84,7 @@ function EvidenceRow({ item }: { item: EvidenceItem }) {
           href={item.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="block rounded-md border border-white/8 bg-white/[0.03] px-4 py-3 transition hover:border-teal-500/40 hover:bg-teal-500/5"
+          className="block rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-3 transition hover:border-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]"
         >
           {body}
         </a>
@@ -90,7 +93,7 @@ function EvidenceRow({ item }: { item: EvidenceItem }) {
   }
 
   return (
-    <li className="rounded-md border border-white/8 bg-white/[0.03] px-4 py-3">
+    <li className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
       {body}
     </li>
   );
@@ -99,7 +102,7 @@ function EvidenceRow({ item }: { item: EvidenceItem }) {
 export function EvidenceTrace({ evidence }: { evidence: EvidenceItem[] }) {
   if (evidence.length === 0) {
     return (
-      <p className="text-sm text-red-300">
+      <p className="text-sm text-red-700 dark:text-red-300">
         No evidence attached — this gap should not have been emitted.
       </p>
     );
@@ -114,7 +117,7 @@ export function EvidenceTrace({ evidence }: { evidence: EvidenceItem[] }) {
     <div className="space-y-5">
       {groups.map((group) => (
         <div key={group.type}>
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             {GROUP_LABELS[group.type]}
           </h4>
           <ul className="space-y-2">

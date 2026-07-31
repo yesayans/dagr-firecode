@@ -6,9 +6,11 @@ import { resolveApp, searchApps, startAnalyze } from "@/lib/api";
 import type { App } from "@/lib/types";
 import { CustomAnalyzeForm } from "@/components/CustomAnalyzeForm";
 import { RoadmapSourceBadge } from "@/components/RoadmapSourceBadge";
+import { useI18n } from "@/lib/i18n";
 
 export default function HomePage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<App[]>([]);
   const [open, setOpen] = useState(false);
@@ -115,16 +117,14 @@ export default function HomePage() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-10 sm:px-10 sm:py-14">
       <header className="animate-fade-up">
-        <p className="font-mono text-xs font-medium uppercase tracking-[0.22em] text-teal-400/90">
-          Silent Stakeholder
+        <p className="font-mono text-xs font-medium uppercase tracking-[0.22em] text-[var(--accent)]">
+          {t("brandEyebrow")}
         </p>
-        <h1 className="mt-3 text-5xl font-semibold tracking-tight text-white sm:text-6xl md:text-7xl">
+        <h1 className="mt-3 text-5xl font-semibold tracking-tight text-[var(--foreground)] sm:text-6xl md:text-7xl">
           dagr
         </h1>
-        <p className="mt-4 max-w-2xl text-lg leading-relaxed text-zinc-400 sm:text-xl">
-          Cross-reference app-store reviews against a product roadmap — for{" "}
-          <span className="text-zinc-200">any</span> app, including closed-source
-          ones with no GitHub repo — and surface latent needs the roadmap misses.
+        <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[var(--muted)] sm:text-xl">
+          {t("tagline")}
         </p>
       </header>
 
@@ -135,16 +135,16 @@ export default function HomePage() {
         <div ref={wrapRef} className="space-y-2">
           <label
             htmlFor="app-search"
-            className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500"
+            className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]"
           >
-            Find an app
+            {t("findApp")}
           </label>
           <div className="relative">
             <input
               id="app-search"
               type="search"
               autoComplete="off"
-              placeholder="Search by name or package — try AntennaPod, Signal, Instagram…"
+              placeholder={t("searchPlaceholder")}
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
@@ -155,11 +155,11 @@ export default function HomePage() {
                   setOpen(true);
                 }
               }}
-              className="w-full rounded-xl border border-white/12 bg-zinc-900/80 px-5 py-4 text-lg text-white outline-none ring-0 placeholder:text-zinc-600 focus:border-teal-400/50 focus:shadow-[0_0_0_3px_rgba(45,212,191,0.12)]"
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 text-lg text-[var(--foreground)] outline-none ring-0 placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_18%,transparent)]"
             />
             {searching && (
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 font-mono text-xs text-zinc-500 animate-pulse-soft">
-                searching…
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 font-mono text-xs text-[var(--muted)] animate-pulse-soft">
+                {t("searching")}
               </span>
             )}
           </div>
@@ -169,15 +169,16 @@ export default function HomePage() {
           {open && query.trim() && (results.length > 0 || searchError || !searching) && (
             <ul
               role="listbox"
-              className="max-h-72 w-full overflow-auto rounded-xl border border-white/10 bg-zinc-950 py-2 shadow-xl ring-1 ring-white/5"
+              className="max-h-72 w-full overflow-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] py-2 shadow-xl"
             >
               {searchError && (
-                <li className="px-4 py-3 text-sm text-red-300">{searchError}</li>
+                <li className="px-4 py-3 text-sm text-red-600 dark:text-red-300">
+                  {searchError}
+                </li>
               )}
               {!searchError && !searching && results.length === 0 && (
-                <li className="px-4 py-3 text-sm text-zinc-500">
-                  No apps matched “{query}”. Use the form below to upload your
-                  own reviews instead.
+                <li className="px-4 py-3 text-sm text-[var(--muted)]">
+                  {t("noApps", { q: query })}
                 </li>
               )}
               {results.map((app) => (
@@ -187,22 +188,22 @@ export default function HomePage() {
                     role="option"
                     aria-selected={selected?.id === app.id}
                     onClick={() => handleSelect(app)}
-                    className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left transition hover:bg-white/5"
+                    className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left transition hover:bg-[var(--surface-muted)]"
                   >
                     <div>
-                      <p className="font-medium text-white">
+                      <p className="font-medium text-[var(--foreground)]">
                         {app.display_name}
                       </p>
-                      <p className="font-mono text-xs text-zinc-500">
+                      <p className="font-mono text-xs text-[var(--muted)]">
                         {app.package_name}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-mono text-xs uppercase text-zinc-400">
+                      <p className="font-mono text-xs uppercase text-[var(--muted)]">
                         {app.roadmap_source}
                       </p>
-                      <p className="text-xs text-zinc-600">
-                        {app.review_count.toLocaleString()} reviews
+                      <p className="text-xs text-[var(--muted)]">
+                        {app.review_count.toLocaleString()} {t("reviews").toLowerCase()}
                       </p>
                     </div>
                   </button>
@@ -213,28 +214,28 @@ export default function HomePage() {
         </div>
 
         {resolving && (
-          <div className="rounded-xl border border-white/10 bg-zinc-900/50 px-5 py-6 text-sm text-zinc-400 animate-pulse-soft">
-            Resolving roadmap source…
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-6 text-sm text-[var(--muted)] animate-pulse-soft">
+            {t("resolving")}
           </div>
         )}
 
         {resolveError && (
           <div
             role="alert"
-            className="rounded-xl border border-red-500/40 bg-red-500/10 px-5 py-4 text-sm text-red-200"
+            className="rounded-xl border border-red-500/40 bg-red-500/10 px-5 py-4 text-sm text-red-700 dark:text-red-200"
           >
             {resolveError}
           </div>
         )}
 
         {selected && !resolving && (
-          <div className="animate-fade-up space-y-6 rounded-xl border border-white/10 bg-zinc-900/60 p-6 sm:p-8">
+          <div className="animate-fade-up space-y-6 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h2 className="text-3xl font-semibold tracking-tight text-white">
+                <h2 className="text-3xl font-semibold tracking-tight text-[var(--foreground)]">
                   {selected.display_name}
                 </h2>
-                <p className="mt-1 font-mono text-sm text-zinc-500">
+                <p className="mt-1 font-mono text-sm text-[var(--muted)]">
                   {selected.package_name}
                 </p>
               </div>
@@ -242,27 +243,27 @@ export default function HomePage() {
             </div>
 
             <dl className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-lg border border-white/8 bg-black/25 px-4 py-3">
-                <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-                  Reviews
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3">
+                <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                  {t("reviews")}
                 </dt>
-                <dd className="mt-1 font-mono text-2xl tabular-nums text-white">
+                <dd className="mt-1 font-mono text-2xl tabular-nums text-[var(--foreground)]">
                   {selected.review_count.toLocaleString()}
                 </dd>
               </div>
-              <div className="rounded-lg border border-white/8 bg-black/25 px-4 py-3">
-                <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-                  Avg stars
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3">
+                <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                  {t("avgStars")}
                 </dt>
-                <dd className="mt-1 font-mono text-2xl tabular-nums text-white">
+                <dd className="mt-1 font-mono text-2xl tabular-nums text-[var(--foreground)]">
                   {selected.avg_stars ?? "—"}
                 </dd>
               </div>
-              <div className="rounded-lg border border-white/8 bg-black/25 px-4 py-3">
-                <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-                  Roadmap items
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3">
+                <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                  {t("roadmapItems")}
                 </dt>
-                <dd className="mt-1 font-mono text-2xl tabular-nums text-white">
+                <dd className="mt-1 font-mono text-2xl tabular-nums text-[var(--foreground)]">
                   {selected.roadmap_item_count}
                 </dd>
               </div>
@@ -271,30 +272,30 @@ export default function HomePage() {
             <div className="space-y-2 text-sm">
               {selected.github_repo && (
                 <p>
-                  <span className="text-zinc-500">GitHub · </span>
+                  <span className="text-[var(--muted)]">GitHub · </span>
                   <a
                     href={`https://github.com/${selected.github_repo}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-mono text-teal-300 hover:text-teal-200"
+                    className="font-mono text-[var(--accent)] hover:opacity-80"
                   >
                     {selected.github_repo}
                   </a>
                 </p>
               )}
               {!selected.github_repo && selected.roadmap_source === "web" && (
-                <p className="text-zinc-400">
+                <p className="text-[var(--muted)]">
                   No repo linked — web changelog / roadmap pages will be used.
                 </p>
               )}
               {selected.roadmap_source === "none" && (
-                <p className="text-amber-200/90">
+                <p className="text-amber-800 dark:text-amber-200/90">
                   Closed-source / no public roadmap — analysis will surface
                   UNVERIFIED needs from reviews alone.
                 </p>
               )}
               {selected.sample_review && (
-                <p className="border-l-2 border-white/15 pl-3 italic text-zinc-400">
+                <p className="border-l-2 border-[var(--border)] pl-3 italic text-[var(--muted)]">
                   “{selected.sample_review}”
                 </p>
               )}
@@ -303,7 +304,7 @@ export default function HomePage() {
             {analyzeError && (
               <div
                 role="alert"
-                className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+                className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-200"
               >
                 {analyzeError}
               </div>
@@ -313,21 +314,21 @@ export default function HomePage() {
               type="button"
               onClick={handleAnalyze}
               disabled={analyzing}
-              className="inline-flex w-full items-center justify-center rounded-xl bg-teal-400 px-6 py-4 text-lg font-semibold text-zinc-950 transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[220px]"
+              className="inline-flex w-full items-center justify-center rounded-xl bg-[var(--accent)] px-6 py-4 text-lg font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[220px] dark:text-zinc-950"
             >
-              {analyzing ? "Starting analysis…" : "Analyze"}
+              {analyzing ? t("analyzing") : t("analyze")}
             </button>
           </div>
         )}
 
         {!selected && !resolving && !resolveError && (
-          <div className="rounded-xl border border-dashed border-white/12 bg-white/[0.02] px-5 py-8 text-center text-sm text-zinc-500">
+          <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)]/50 px-5 py-8 text-center text-sm text-[var(--muted)]">
             Select an app to resolve its roadmap source, then run analysis.
             Catalog covers{" "}
-            <span className="text-zinc-300">github</span>,{" "}
-            <span className="text-zinc-300">web</span>,{" "}
-            <span className="text-zinc-300">hybrid</span>, and{" "}
-            <span className="text-zinc-300">none</span> modes.
+            <span className="text-[var(--foreground)]">github</span>,{" "}
+            <span className="text-[var(--foreground)]">web</span>,{" "}
+            <span className="text-[var(--foreground)]">hybrid</span>, and{" "}
+            <span className="text-[var(--foreground)]">none</span> modes.
           </div>
         )}
       </section>
@@ -337,11 +338,11 @@ export default function HomePage() {
         style={{ animationDelay: "140ms" }}
       >
         <div className="mb-4 flex items-center gap-3">
-          <div className="h-px flex-1 bg-white/10" />
-          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+          <div className="h-px flex-1 bg-[var(--border)]" />
+          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
             or bring your own data
           </p>
-          <div className="h-px flex-1 bg-white/10" />
+          <div className="h-px flex-1 bg-[var(--border)]" />
         </div>
         <CustomAnalyzeForm />
       </section>

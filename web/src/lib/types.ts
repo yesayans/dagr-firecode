@@ -97,6 +97,13 @@ export interface Gap {
   evidence: EvidenceItem[];
 }
 
+export interface JobCharts {
+  period: "year" | "month" | string;
+  reviews_by_period: { period: string; count: number }[];
+  rating_histogram: { stars: number; count: number }[];
+  need_bearing: { need_bearing: number; other: number };
+}
+
 export interface Job {
   id: string;
   app: App;
@@ -115,9 +122,12 @@ export interface Job {
     elapsed_s: number;
     degraded: string[];
     review_provenance: "hf" | "parquet_cache" | "fixture" | "csv_upload";
+    reviews_total?: number;
+    reviews_need_bearing?: number;
     review_window_start: string;
     review_window_end: string;
     reference_date: string;
+    charts?: JobCharts;
   };
   gaps: Gap[];
   created_at: string;
@@ -150,6 +160,29 @@ export interface AnalyzeRequest {
   app_id: string;
   max_reviews: number;
   force: boolean;
+}
+
+export interface ChatCitation {
+  gap_rank: number | null;
+  evidence_id: string | null;
+  quote: string;
+}
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  citations?: ChatCitation[];
+}
+
+export interface ChatRequest {
+  message: string;
+  history: { role: "user" | "assistant"; content: string }[];
+}
+
+export interface ChatResponse {
+  answer: string;
+  citations: ChatCitation[];
+  model: string;
 }
 
 export const STAGE_SEQUENCE: Stage[] = [
