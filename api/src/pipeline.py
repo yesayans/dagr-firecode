@@ -16,6 +16,7 @@ from src.data_ingestion import ReviewScraper
 from src.embedding_engine import EmbeddingEngine
 from src.gap_analyzer import GapMatrix, compute_review_window
 from src.llm_extractor import ExtractedGap, LatentNeedExtractor
+from src.matching_space import build_matching_space
 from src.need_filter import select_need_bearing
 from src.resolver import RoadmapResolver
 from src.store import Store
@@ -29,6 +30,10 @@ def config_hash(app_id: str, max_reviews: int, settings: Settings) -> str:
         "max_reviews": max_reviews,
         "embedding_backend": settings.embedding_backend,
         "match_threshold": settings.active_match_threshold(),
+        "null_percentile": getattr(settings, "null_percentile", 95.0),
+        "roadmap_matching_enabled": getattr(
+            settings, "roadmap_matching_enabled", True
+        ),
         "llm": settings.llm_enabled,
         "model": settings.openrouter_model,
     }
@@ -191,10 +196,28 @@ class AnalysisPipeline:
             cb("clustering", 55)
             cb("matching", 65)
 
+            matching_space = None
             threshold = self.settings.active_match_threshold(backend_name)
             margin = self.settings.active_match_margin(backend_name)
+            if (
+                self.settings.roadmap_matching_enabled
+                and roadmap_source != "none"
+                and roadmap_texts
+            ):
+                matching_space = build_matching_space(
+                    roadmap_texts, self.settings
+                )
+                threshold = float(matching_space.threshold)
+                if matching_space.null.n_control_clusters == 0:
+                    degraded.append(
+                        "null-model: no control reviews; using absolute TF-IDF floor"
+                    )
+
             analyzer = GapMatrix(
-                self.settings, match_threshold=threshold, match_margin=margin
+                self.settings,
+                match_threshold=threshold,
+                match_margin=margin,
+                matching_space=matching_space,
             )
             candidates = analyzer.analyze(
                 clusters=clusters,
@@ -245,6 +268,15 @@ class AnalysisPipeline:
                 "elapsed_s": elapsed,
                 "degraded": sorted(set(degraded)),
                 "match_threshold": threshold,
+                "match_threshold_source": (
+                    "null_model" if matching_space is not None else "absolute"
+                ),
+                "null_percentile": getattr(self.settings, "null_percentile", 95.0),
+                "null_control_clusters": (
+                    matching_space.null.n_control_clusters
+                    if matching_space is not None
+                    else 0
+                ),
                 "review_provenance": review_provenance,
                 **window_meta,
             }

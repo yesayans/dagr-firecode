@@ -87,11 +87,11 @@ python -m src.pipeline
 
 ## Embedding thresholds
 
-- `MATCH_THRESHOLD_TFIDF` default `0.16` (char_wb TF-IDF recall floor; calibrated on AntennaPod probes)
-- `MATCH_MARGIN_TFIDF` default `0.0` (tfidf margins too tight to require; MiniLM still uses a margin)
-- `MATCH_THRESHOLD_MINILM` default `0.45` (contract MiniLM calibration)
-- `MATCH_MARGIN_MINILM` default `0.05`
-- Active value reported in `GET /health` as `match_threshold`
+- `ROADMAP_MATCHING_ENABLED` default `false` — null-model test showed lexical
+  matching cannot separate real apps from controls; gaps emit as `UNVERIFIED`
+- Matcher code (review-level agreement + `NULL_PERCENTILE=95`) remains for a
+  future embedding backend; see `scripts/null_test_validation.py`
+- `MATCH_THRESHOLD_TFIDF` / `MATCH_MARGIN_*` apply only when matching is re-enabled
 
 Recalibrate against live GitHub data (rewrites the regression fixture):
 

@@ -28,24 +28,23 @@ that is **contemporaneous with the review corpus** (item `created_at` ≤
 `review_window_end`). Items created after the corpus window never count as covering a
 complaint — they are reserved for retrospective validation (section 4).
 
-`MATCH_THRESHOLD` is per-embedding-backend configurable (`MATCH_THRESHOLD_TFIDF`
-defaults to `0.16` for char_wb TF-IDF; `MATCH_THRESHOLD_MINILM` defaults to `0.45`).
-MiniLM also requires a relative margin (`MATCH_MARGIN_MINILM`). For tfidf,
-`MATCH_MARGIN_TFIDF` defaults to `0.0` — calibration does not support a useful
-margin (weakest correct top-1 margin ≈ `0.003`).
+**Roadmap matching is currently disabled** (`ROADMAP_MATCHING_ENABLED=false`).
+Short-probe char_wb retrieval works (see `scripts/calibrate_retrieval.py`), but
+cluster-level matching — even after review-level aggregation and a null-model
+threshold at the 95th percentile of control-app scores — does **not** separate
+AntennaPod from unrelated apps (`scripts/null_test_validation.py`). Shipping
+`IGNORED` / `UNDER-PRIORITIZED` / `MISUNDERSTOOD` / `validated_by_later_roadmap`
+on that signal would be presenting noise. Until a discriminative matcher exists
+(e.g. lightweight ONNX embeddings), every gap is emitted as **UNVERIFIED**
+regardless of whether a GitHub roadmap was resolved.
 
-**What the threshold is and is not.** Calibrated by `scripts/calibrate_retrieval.py`
-against live AntennaPod roadmap items (boilerplate stripped, version milestones
-excluded) with five hand-labelled review probes (fixture:
-`api/tests/fixtures/retrieval_calibration.json`): char_wb retrieves the correct
-top-1 for 5/5 probes vs ~2–3/5 for word n-grams; union ties accuracy but loses on
-score magnitude. Weakest true match ≈ `0.165`; ambiguous negative
-("Podcasts won't start playing") ≈ `0.175`; within-query runner-ups reach ≈ `0.33`.
-**No absolute threshold separates true matches from plausible-but-wrong top-1s.**
-`0.16` is a **recall floor** — low enough to admit every labelled true match — not a
-precision guarantee. Ranking (top-1 under char_wb) carries the signal. Consequence
-for verdicts: the `IGNORED` branch is conservative only when a theme is lexically
-distant from every contemporaneous item.
+When matching is re-enabled, the intended rules are:
+
+Match score `s` is the mean top-1 similarity among cluster members that agree on
+the same roadmap item (review-level match, then vote). A match counts only if
+member agreement clears a floor **and** `s` exceeds the null-model percentile
+(`NULL_PERCENTILE`, default 95) of control-app cluster scores against the same
+roadmap.
 
 All recency / staleness comparisons are anchored to the **review corpus window**, not
 wall-clock `now`. Compute `review_window_start` / `review_window_end` from the
@@ -53,18 +52,13 @@ wall-clock `now`. Compute `review_window_start` / `review_window_end` from the
 `review_window_end`. Persist both bounds (and the reference date) on every gap's
 `metrics` and on the job `stats`.
 
-- `s < MATCH_THRESHOLD` → **IGNORED** — nothing on the contemporaneous roadmap addresses
-  this theme.
-- `s >= MATCH_THRESHOLD`, matched item is **closed/shipped/released as of
-  `review_window_end`** (its `closed_at` ≤ window end) yet reviews inside the window
-  still complain about it → **MISUNDERSTOOD** — the team believed it was done; users
-  in the corpus disagree.
-- `s >= MATCH_THRESHOLD`, matched item is **open as of `review_window_end`** but
-  **stale** (last touch more than 365 days before `review_window_end`) or has
-  **no milestone** → **UNDER-PRIORITIZED**.
-- `s >= MATCH_THRESHOLD`, matched item is open as of the window, fresh within 365 days
-  of `review_window_end`, and milestoned → **well covered, drop the cluster**.
-- mode `none` → **UNVERIFIED**, no similarity step at all.
+- below null threshold or no agreement → **IGNORED**
+- matched item **closed/shipped as of `review_window_end`** with continuing
+  complaints → **MISUNDERSTOOD**
+- matched item **open as of window**, stale (>365 days) or unmilestoned →
+  **UNDER-PRIORITIZED**
+- matched item open, fresh, milestoned → well covered, drop the cluster
+- matching disabled or mode `none` → **UNVERIFIED**
 
 The LLM may *confirm or adjust* a verdict within the allowed set for the mode; it may
 never invent one outside it, and in `none` mode it is forced to `UNVERIFIED`.

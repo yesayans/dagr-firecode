@@ -80,6 +80,15 @@ class Settings(BaseSettings):
     # tfidf margin disabled: weakest correct margin ≈0.003 (not useful as a gate).
     match_margin_tfidf: float = Field(default=0.0, alias="MATCH_MARGIN_TFIDF")
     match_margin_minilm: float = Field(default=0.05, alias="MATCH_MARGIN_MINILM")
+    # Match score must exceed this percentile of control-app cluster scores
+    # against the same roadmap (null model). See src/null_model.py.
+    null_percentile: float = Field(default=95.0, alias="NULL_PERCENTILE")
+    # Null-model test (scripts/null_test_validation.py) showed lexical review-level
+    # matching cannot separate AntennaPod from control apps (sep ≈ 0.05). Keep the
+    # matcher code for future embedding backends, but do not emit matched verdicts.
+    roadmap_matching_enabled: bool = Field(
+        default=False, alias="ROADMAP_MATCHING_ENABLED"
+    )
 
     max_reviews: int = Field(default=2000, alias="MAX_REVIEWS")
     hf_dataset: str = Field(default="sealuzh/app_reviews", alias="HF_DATASET")

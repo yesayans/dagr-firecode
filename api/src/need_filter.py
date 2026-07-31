@@ -14,7 +14,7 @@ WANT_RE = re.compile(
     r"hope|please add|please (fix|make|include)|"
     r"missing|lack of|lacks?|no way to|can't|cant|cannot|doesn't let|"
     r"should (have|be able|allow|support)|if only|"
-    r"need(s)? (a|an|to|the|more|better)|needs? |"
+    r"need(s)? (a|an|to|the|more|better)|"
     r"feature request|suggest(ion)?|add(ed|ing)? support|"
     r"it('?d| would) (be|help)|looking for|miss(ing)? (a|an|the)|"
     r"faster .+ would|go to at least|at least \d|"
@@ -26,12 +26,18 @@ WANT_RE = re.compile(
 # Concrete problem / defect language
 PROBLEM_RE = re.compile(
     r"\b("
-    r"bug|broken|crash(es|ed|ing)?|fail(s|ed|ing)?|error|freeze|frozen|"
+    r"bug|broken|crash(?:es|ed|ing)?|fail(?:s|ed|ing)?|error|freeze|frozen|"
     r"stuck|unusable|doesn'?t work|does not work|won'?t work|not work|"
-    r"stopped working|keeps? (crashing|failing|stopping)|"
+    r"stopped working|keeps? (?:crashing|failing|stopping)|"
     r"force.?close|anr|slow network|pause when resuming|"
-    r"never works|always (fails|crashes)|glitch"
+    r"never works|always (?:fails|crashes)|glitch"
     r")\b",
+    re.I,
+)
+# Negated problem phrasing that should not count as a defect signal
+_NEGATED_PROBLEM = re.compile(
+    r"\b(without|never|no)\s+(any\s+)?(crash(?:es|ed|ing)?|fail(?:s|ed|ing)?|"
+    r"error|bug|glitch|freeze|freezing)\b",
     re.I,
 )
 
@@ -60,7 +66,8 @@ def is_need_bearing(text: str, rating: float | None = None) -> bool:
         return True
     if WANT_RE.search(t):
         return True
-    if PROBLEM_RE.search(t):
+    cleaned = _NEGATED_PROBLEM.sub(" ", t)
+    if PROBLEM_RE.search(cleaned):
         return True
     return False
 

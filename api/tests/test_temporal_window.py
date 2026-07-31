@@ -23,16 +23,18 @@ def _cluster(review_ids):
 
 
 def _run(reviews, items, window=None):
-    gm = GapMatrix(match_threshold=0.45)
-    road_emb = np.array([[1.0, 0.0]] * len(items))
+    gm = GapMatrix(match_threshold=0.45, roadmap_matching_enabled=True)
+    n = len(reviews)
+    road_emb = np.array([[1.0, 0.0]] * max(len(items), 1))
+    review_emb = np.tile(np.array([1.0, 0.0]), (n, 1))
     return gm.analyze(
         clusters=[_cluster(reviews["review_id"].tolist())],
-        review_embeddings=np.zeros((len(reviews), 2)),
+        review_embeddings=review_emb,
         reviews_df=reviews,
         roadmap_items=pd.DataFrame(items),
         roadmap_embeddings=road_emb,
         roadmap_source="github",
-        total_reviews=len(reviews),
+        total_reviews=n,
         review_window=window,
     )
 
@@ -218,10 +220,10 @@ def test_later_addressed_degrades_cleanly_when_absent():
         }
     ]
     # Orthogonal embeddings → IGNORED, no later match
-    gm = GapMatrix(match_threshold=0.45)
+    gm = GapMatrix(match_threshold=0.45, roadmap_matching_enabled=True)
     out = gm.analyze(
         clusters=[_cluster(reviews["review_id"].tolist())],
-        review_embeddings=np.zeros((5, 2)),
+        review_embeddings=np.tile(np.array([1.0, 0.0]), (5, 1)),
         reviews_df=reviews,
         roadmap_items=pd.DataFrame(items),
         roadmap_embeddings=np.array([[0.0, 1.0]]),

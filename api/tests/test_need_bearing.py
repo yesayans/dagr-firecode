@@ -30,6 +30,16 @@ def test_classifier_polite_wants_vs_empty_praise():
     assert is_need_bearing(SEARCH_WANT, 4.0) is True
     assert is_need_bearing(PRAISE, 4.0) is False
     assert is_need_bearing("App crashes on open", 2.0) is True
+    # "need is" must not trip want-language (was a false positive)
+    assert is_need_bearing(
+        "Everything you need is here in this great app. Reliable and straightforward.",
+        5.0,
+    ) is False
+    # "without crashing" is praise, not a defect
+    assert is_need_bearing(
+        "Easy and reliable. Excellent app. Downloads and plays without crashing.",
+        5.0,
+    ) is False
 
 
 def test_polite_four_star_wants_survive_and_empty_praise_does_not():

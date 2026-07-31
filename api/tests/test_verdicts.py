@@ -23,8 +23,13 @@ def _cluster(review_ids, cohesion=0.8, mean_rating=1.5, size=None):
     }
 
 
+def _aligned_review_emb(n: int = 5) -> np.ndarray:
+    """Member embeddings identical to a [1,0] roadmap item (agreement + high sim)."""
+    return np.tile(np.array([1.0, 0.0]), (n, 1))
+
+
 def test_ignored_below_threshold():
-    gm = GapMatrix(match_threshold=0.45)
+    gm = GapMatrix(match_threshold=0.45, roadmap_matching_enabled=True)
     reviews = pd.DataFrame(
         {
             "review_id": ["a1", "a2", "a3", "a4", "a5"],
@@ -49,11 +54,11 @@ def test_ignored_below_threshold():
             }
         ]
     )
-    # Centroid [1,0], roadmap emb nearly orthogonal → low sim
+    # Reviews point at [1,0], roadmap at [0,1] → cosine 0
     road_emb = np.array([[0.0, 1.0]])
     out = gm.analyze(
         clusters=[_cluster(["a1", "a2", "a3", "a4", "a5"])],
-        review_embeddings=np.zeros((5, 2)),
+        review_embeddings=_aligned_review_emb(5),
         reviews_df=reviews,
         roadmap_items=items,
         roadmap_embeddings=road_emb,
@@ -65,7 +70,7 @@ def test_ignored_below_threshold():
 
 
 def test_misunderstood_closed_item_recent_reviews():
-    gm = GapMatrix(match_threshold=0.45)
+    gm = GapMatrix(match_threshold=0.45, roadmap_matching_enabled=True)
     reviews = pd.DataFrame(
         {
             "review_id": [f"r{i}" for i in range(5)],
@@ -90,10 +95,10 @@ def test_misunderstood_closed_item_recent_reviews():
             }
         ]
     )
-    road_emb = np.array([[1.0, 0.0]])  # identical to centroid
+    road_emb = np.array([[1.0, 0.0]])
     out = gm.analyze(
         clusters=[_cluster([f"r{i}" for i in range(5)])],
-        review_embeddings=np.zeros((5, 2)),
+        review_embeddings=_aligned_review_emb(5),
         reviews_df=reviews,
         roadmap_items=items,
         roadmap_embeddings=road_emb,
@@ -105,7 +110,7 @@ def test_misunderstood_closed_item_recent_reviews():
 
 
 def test_under_prioritized_stale_or_no_milestone():
-    gm = GapMatrix(match_threshold=0.45)
+    gm = GapMatrix(match_threshold=0.45, roadmap_matching_enabled=True)
     reviews = pd.DataFrame(
         {
             "review_id": [f"r{i}" for i in range(5)],
@@ -133,7 +138,7 @@ def test_under_prioritized_stale_or_no_milestone():
     road_emb = np.array([[1.0, 0.0]])
     out = gm.analyze(
         clusters=[_cluster([f"r{i}" for i in range(5)])],
-        review_embeddings=np.zeros((5, 2)),
+        review_embeddings=_aligned_review_emb(5),
         reviews_df=reviews,
         roadmap_items=items,
         roadmap_embeddings=road_emb,
@@ -144,7 +149,7 @@ def test_under_prioritized_stale_or_no_milestone():
 
 
 def test_well_covered_dropped():
-    gm = GapMatrix(match_threshold=0.45)
+    gm = GapMatrix(match_threshold=0.45, roadmap_matching_enabled=True)
     reviews = pd.DataFrame(
         {
             "review_id": [f"r{i}" for i in range(5)],
@@ -172,7 +177,7 @@ def test_well_covered_dropped():
     road_emb = np.array([[1.0, 0.0]])
     out = gm.analyze(
         clusters=[_cluster([f"r{i}" for i in range(5)])],
-        review_embeddings=np.zeros((5, 2)),
+        review_embeddings=_aligned_review_emb(5),
         reviews_df=reviews,
         roadmap_items=items,
         roadmap_embeddings=road_emb,
@@ -183,7 +188,7 @@ def test_well_covered_dropped():
 
 
 def test_none_mode_unverified():
-    gm = GapMatrix(match_threshold=0.45)
+    gm = GapMatrix(match_threshold=0.45, roadmap_matching_enabled=True)
     reviews = pd.DataFrame(
         {
             "review_id": [f"r{i}" for i in range(5)],
