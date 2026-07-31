@@ -225,6 +225,9 @@ class LocalJsonStore:
                 if not evidence:
                     continue
                 gap_id = g.get("id") or _new_id()
+                metrics = dict(g.get("metrics") or {})
+                need_source = g.get("need_source") or "representative_review"
+                metrics["need_source"] = need_source
                 gap_row = {
                     "id": gap_id,
                     "job_id": job_id,
@@ -235,7 +238,8 @@ class LocalJsonStore:
                     "confidence_rationale": g.get("confidence_rationale") or "",
                     "verdict": g["verdict"],
                     "latent_reasoning": g.get("latent_reasoning") or "",
-                    "metrics": g.get("metrics") or {},
+                    "need_source": need_source,
+                    "metrics": metrics,
                     "created_at": _utcnow(),
                 }
                 data["gaps"][gap_id] = gap_row
@@ -308,6 +312,7 @@ class LocalJsonStore:
                         "confidence": float(g["confidence"]),
                         "confidence_rationale": g.get("confidence_rationale") or "",
                         "latent_reasoning": g.get("latent_reasoning") or "",
+                        "need_source": g.get("need_source") or "representative_review",
                         "metrics": g.get("metrics") or {},
                         "evidence": evidence,
                     }
@@ -517,6 +522,8 @@ class SupabaseStore:
             evidence = g.get("evidence") or []
             if not evidence:
                 continue
+            metrics = dict(g.get("metrics") or {})
+            metrics["need_source"] = g.get("need_source") or "representative_review"
             gap_payload = {
                 "job_id": job_id,
                 "rank": g["rank"],
@@ -526,7 +533,7 @@ class SupabaseStore:
                 "confidence_rationale": g.get("confidence_rationale") or "",
                 "verdict": g["verdict"],
                 "latent_reasoning": g.get("latent_reasoning") or "",
-                "metrics": g.get("metrics") or {},
+                "metrics": metrics,
             }
             gres = self._client.table("gaps").insert(gap_payload).execute()
             gap_row = gres.data[0]
@@ -563,6 +570,9 @@ class SupabaseStore:
                     "confidence": float(gap_row["confidence"]),
                     "confidence_rationale": gap_row.get("confidence_rationale") or "",
                     "latent_reasoning": gap_row.get("latent_reasoning") or "",
+                    "need_source": (gap_row.get("metrics") or {}).get(
+                        "need_source", "representative_review"
+                    ),
                     "metrics": gap_row.get("metrics") or {},
                     "evidence": ev_out,
                 }
@@ -607,6 +617,7 @@ class SupabaseStore:
                 }
                 for e in (ev_res.data or [])
             ]
+            m = g.get("metrics") or {}
             gaps_out.append(
                 {
                     "id": g["id"],
@@ -617,7 +628,8 @@ class SupabaseStore:
                     "confidence": float(g["confidence"]),
                     "confidence_rationale": g.get("confidence_rationale") or "",
                     "latent_reasoning": g.get("latent_reasoning") or "",
-                    "metrics": g.get("metrics") or {},
+                    "need_source": m.get("need_source") or "representative_review",
+                    "metrics": m,
                     "evidence": evidence,
                 }
             )

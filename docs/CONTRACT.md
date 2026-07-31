@@ -118,8 +118,12 @@ were classified need-bearing (1.0 when clustering the filtered set only).
    the highest-cohesion members of the cluster.
 3. No placeholder code, no TODOs, no stubbed returns.
 4. Every external dependency has an offline fallback so a live demo cannot fail:
-   reviews → local parquet cache; roadmap → `data/roadmaps/*.json` cache; LLM → deterministic
-   template extractor with `llm_used: false`; Supabase → local JSON store.
+   reviews → local parquet cache; roadmap → `data/roadmaps/*.json` cache; LLM → quote the
+   cluster's most representative need-bearing review verbatim (`need_source:
+   "representative_review"`, `llm_used: false`) — never synthesise a fake need statement;
+   Supabase → local JSON store. GitHub auth may come from `GITHUB_TOKEN` or, when
+   `GITHUB_TOKEN_FROM_GIT_CREDENTIAL=true` (default), from `git credential fill` for
+   `github.com` (resolved once into memory; never written to `.env`).
 5. Anything degraded must be visible in `/health` and in the job's `stats`, never silently
    faked.
 
@@ -135,10 +139,14 @@ Base URL `http://127.0.0.1:8000`. All responses JSON. CORS open to `http://local
   "llm_enabled": true,
   "llm_model": "openai/gpt-4o-mini",
   "github_token": true,
+  "github_token_source": "git_credential",
   "embedding_backend": "minilm",
   "match_threshold": 0.45
 }
 ```
+
+`github_token_source` is `"env" | "git_credential" | "none"`. The boolean
+`github_token` remains `true` iff the source is not `"none"`.
 
 ### `GET /apps?q=<substring>&limit=25`
 Returns `App[]` from the catalog (seeded from `data/discovery/candidates_sealuzh.json`).
@@ -218,6 +226,8 @@ interface GapMetrics {
   need_bearing_share: number;    // 0–1 share of cluster members classified need-bearing
 }
 
+type NeedSource = "llm" | "representative_review";
+
 interface Gap {
   id: string;
   rank: number;
@@ -227,6 +237,8 @@ interface Gap {
   confidence: number;            // 0–100
   confidence_rationale: string;
   latent_reasoning: string;
+  /** Distinguishes an LLM-inferred latent need from a verbatim user quote. */
+  need_source: NeedSource;
   metrics: GapMetrics;
   evidence: EvidenceItem[];
 }

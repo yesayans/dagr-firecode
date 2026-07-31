@@ -376,6 +376,7 @@ class AnalysisPipeline:
                     "confidence": ex.confidence,
                     "confidence_rationale": ex.confidence_rationale,
                     "latent_reasoning": ex.latent_reasoning,
+                    "need_source": ex.need_source,
                     "metrics": ex.metrics,
                     "evidence": evidence,
                 }

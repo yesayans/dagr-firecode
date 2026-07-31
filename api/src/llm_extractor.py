@@ -1,17 +1,18 @@
-"""Latent-need extraction via OpenRouter, with deterministic offline fallback."""
+"""Latent-need extraction via OpenRouter, with honest no-LLM fallback."""
 
 from __future__ import annotations
 
 import asyncio
 import json
 import logging
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 from pydantic import BaseModel, Field, ValidationError
 
 from src.config import Settings, get_settings
 from src.gap_analyzer import CandidateGap
+from src.need_filter import is_need_bearing
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,8 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 VERDICTS_ROADMAP = {"IGNORED", "UNDER-PRIORITIZED", "MISUNDERSTOOD"}
 VERDICTS_NONE = {"UNVERIFIED"}
+
+NeedSource = Literal["llm", "representative_review"]
 
 
 class LlmGapResponse(BaseModel):
@@ -39,11 +42,13 @@ class ExtractedGap(BaseModel):
     latent_reasoning: str
     cited_review_ids: list[str]
     llm_used: bool
+    need_source: NeedSource
     llm_confidence: float | None
     metrics: dict[str, Any]
     review_ids: list[str]
     matched_item: dict[str, Any] | None
     keywords: list[str]
+    representative_review_id: str | None = None
 
 
 class LatentNeedExtractor:
@@ -65,9 +70,11 @@ class LatentNeedExtractor:
     ) -> list[ExtractedGap]:
         selected = candidates[: max(top_n, 5)]
         if not self.llm_enabled:
-            self.degraded.append("no OPENROUTER_API_KEY; template extractor")
+            self.degraded.append(
+                "no OPENROUTER_API_KEY; quoting representative reviews"
+            )
             return [
-                self._template_extract(c, reviews_by_id, roadmap_source)
+                self._representative_extract(c, reviews_by_id, roadmap_source)
                 for c in selected
             ]
 
@@ -103,9 +110,7 @@ class LatentNeedExtractor:
             for rid in provided_ids
             if rid in reviews_by_id
         ]
-        allowed = (
-            VERDICTS_NONE if roadmap_source == "none" else VERDICTS_ROADMAP
-        )
+        allowed = VERDICTS_NONE if roadmap_source == "none" else VERDICTS_ROADMAP
         matched = None
         if candidate.matched_item:
             matched = {
@@ -128,7 +133,9 @@ class LatentNeedExtractor:
             if err or raw is None:
                 logger.warning("LLM call failed: %s", err)
                 self.degraded.append(f"LLM call failed: {err}")
-                return self._template_extract(candidate, reviews_by_id, roadmap_source)
+                return self._representative_extract(
+                    candidate, reviews_by_id, roadmap_source
+                )
 
             parsed, parse_err = _parse_response(raw)
             if parse_err:
@@ -139,12 +146,12 @@ class LatentNeedExtractor:
                 )
                 raw2, err2 = await self._call_openrouter(retry_prompt)
                 if err2 or raw2 is None:
-                    return self._template_extract(
+                    return self._representative_extract(
                         candidate, reviews_by_id, roadmap_source
                     )
                 parsed, parse_err2 = _parse_response(raw2)
                 if parse_err2 or parsed is None:
-                    return self._template_extract(
+                    return self._representative_extract(
                         candidate, reviews_by_id, roadmap_source
                     )
 
@@ -186,73 +193,72 @@ class LatentNeedExtractor:
             latent_reasoning=parsed.confidence_justification.strip(),
             cited_review_ids=cited,
             llm_used=True,
+            need_source="llm",
             llm_confidence=llm_conf,
             metrics=metrics,
             review_ids=list(candidate.review_ids),
             matched_item=candidate.matched_item,
             keywords=candidate.keywords,
+            representative_review_id=None,
         )
 
-    def _template_extract(
+    def _representative_extract(
         self,
         candidate: CandidateGap,
         reviews_by_id: dict[str, dict[str, Any]],
         roadmap_source: str,
     ) -> ExtractedGap:
-        keywords = candidate.keywords or ["user need"]
-        theme = ", ".join(keywords[:4])
-        rep = candidate.representative_text or ""
-        if not rep and candidate.review_ids:
-            rep = (reviews_by_id.get(candidate.review_ids[0]) or {}).get(
-                "review_text", ""
-            )
-        need = f"Reliable control over {keywords[0]}" if keywords else "Unmet user need"
-        if "sleep" in theme.lower() or "timer" in theme.lower():
-            need = "Trustworthy sleep timer that actually stops playback"
-        elif "download" in theme.lower() or "queue" in theme.lower():
-            need = "Dependable offline download queue"
-        elif "bluetooth" in theme.lower() or "car" in theme.lower():
-            need = "Stable car / Bluetooth playback continuity"
-        elif "search" in theme.lower():
-            need = "Episode search that surfaces content beyond subscriptions"
+        """
+        No LLM: do not synthesise a need statement. Quote the most representative
+        need-bearing review (centroid-nearest) verbatim.
+        """
+        rid, quote = _pick_representative_review(candidate, reviews_by_id)
+        keywords = candidate.keywords or []
+        theme = ", ".join(keywords[:6]) if keywords else "(no keywords)"
 
-        summary = (
-            f"Users repeatedly struggle with {theme}. "
-            f"Example: {rep[:160]}"
-        ).strip()
         det = float(candidate.metrics["deterministic_confidence"])
         verdict = "UNVERIFIED" if roadmap_source == "none" else candidate.verdict
         if roadmap_source == "none":
             rationale = (
-                f"deterministic only ({det}); no public roadmap to verify against — "
-                f"based on user-side evidence density (cluster size={candidate.cluster_size}, "
-                f"cohesion={candidate.cohesion:.2f})."
+                f"deterministic only ({det}); no LLM — quoting representative "
+                f"need-bearing review {rid}; cluster size={candidate.cluster_size}, "
+                f"cohesion={candidate.cohesion:.2f}."
             )
         else:
-            rationale = f"deterministic only ({det}); LLM unavailable."
+            rationale = (
+                f"deterministic only ({det}); no LLM — quoting representative "
+                f"need-bearing review {rid}."
+            )
 
-        provided = list(candidate.review_ids)[:8]
-        cited = _fallback_citations(candidate, reviews_by_id, provided)
+        summary = (
+            f"Supporting themes: {theme}. "
+            f"Quoted review {rid} (closest need-bearing member to cluster centroid)."
+        )
+        cited = [rid] if rid else _fallback_citations(
+            candidate, reviews_by_id, list(candidate.review_ids)[:8]
+        )
         metrics = dict(candidate.metrics)
         metrics["llm_confidence"] = None
 
         return ExtractedGap(
-            latent_need=need,
+            latent_need=quote,
             verdict=verdict,
             confidence=det,
             confidence_rationale=rationale,
-            one_sentence_summary=summary[:280],
+            one_sentence_summary=summary[:320],
             latent_reasoning=(
-                f"Cluster keywords ({theme}) and representative complaints indicate "
-                f"an underlying goal beyond surface wording."
+                f"need_source=representative_review; review_id={rid}; "
+                f"keywords=[{theme}]. Not an inferred latent goal — a real user sentence."
             ),
             cited_review_ids=cited,
             llm_used=False,
+            need_source="representative_review",
             llm_confidence=None,
             metrics=metrics,
             review_ids=list(candidate.review_ids),
             matched_item=candidate.matched_item,
             keywords=candidate.keywords,
+            representative_review_id=rid,
         )
 
     async def _call_openrouter(self, prompt: str) -> tuple[str | None, str | None]:
@@ -290,6 +296,37 @@ class LatentNeedExtractor:
             return None, str(e)
 
 
+def _pick_representative_review(
+    candidate: CandidateGap,
+    reviews_by_id: dict[str, dict[str, Any]],
+) -> tuple[str | None, str]:
+    """Prefer centroid-nearest text when it is need-bearing; else first need-bearing."""
+    rep_text = (candidate.representative_text or "").strip()
+    # Match representative_text back to a review id
+    if rep_text:
+        for rid in candidate.review_ids:
+            rev = reviews_by_id.get(rid) or {}
+            text = str(rev.get("review_text") or "").strip()
+            if text == rep_text or text.startswith(rep_text[:80]):
+                if is_need_bearing(text, rev.get("rating")):
+                    return rid, text
+                break
+
+    for rid in candidate.review_ids:
+        rev = reviews_by_id.get(rid) or {}
+        text = str(rev.get("review_text") or "").strip()
+        if text and is_need_bearing(text, rev.get("rating")):
+            return rid, text
+
+    # Last resort: any member text (should be rare — clusters are need-bearing-only)
+    for rid in candidate.review_ids:
+        rev = reviews_by_id.get(rid) or {}
+        text = str(rev.get("review_text") or "").strip()
+        if text:
+            return rid, text
+    return None, rep_text or "(no review text)"
+
+
 def _build_prompt(
     *,
     sample: list[dict[str, Any]],
@@ -319,7 +356,6 @@ def _parse_response(raw: str) -> tuple[LlmGapResponse | None, str | None]:
     try:
         data = json.loads(raw)
     except json.JSONDecodeError as e:
-        # Try to extract JSON object
         start, end = raw.find("{"), raw.rfind("}")
         if start >= 0 and end > start:
             try:
@@ -347,7 +383,6 @@ def _fallback_citations(
     reviews_by_id: dict[str, dict[str, Any]],
     provided_ids: list[str],
 ) -> list[str]:
-    # Prefer provided ids that exist; take up to 3
     out = [rid for rid in provided_ids if rid in reviews_by_id][:3]
     if out:
         return out
@@ -355,8 +390,6 @@ def _fallback_citations(
 
 
 def main() -> None:
-    from src.gap_analyzer import CandidateGap
-
     settings = get_settings()
     ext = LatentNeedExtractor(settings)
     cand = CandidateGap(
@@ -381,30 +414,35 @@ def main() -> None:
             "rating_spread": 0.4,
             "cohesion": 0.7,
             "llm_confidence": None,
-            "keywords": ["sleep timer", "playback"],
+            "keywords": ["stream", "cache", "playback"],
         },
-        keywords=["sleep timer", "playback"],
-        representative_text="sleep timer does not stop the audio",
+        keywords=["stream", "cache", "playback"],
+        representative_text=(
+            "Lack of a persistent stream cache leads to a potentially long pause "
+            "when resuming playback on slow networks."
+        ),
         cohesion=0.7,
-        mean_rating=2.0,
+        mean_rating=4.0,
         cluster_size=5,
     )
+    quote = cand.representative_text
     reviews = {
-        "r1": {"review_id": "r1", "review_text": "sleep timer broken", "rating": 1},
-        "r2": {"review_id": "r2", "review_text": "timer keeps playing", "rating": 2},
-        "r3": {"review_id": "r3", "review_text": "sleep mode fails", "rating": 1},
-        "r4": {"review_id": "r4", "review_text": "won't stop at night", "rating": 2},
-        "r5": {"review_id": "r5", "review_text": "timer useless", "rating": 1},
+        "r1": {"review_id": "r1", "review_text": quote, "rating": 4},
+        "r2": {"review_id": "r2", "review_text": "wish for faster cache", "rating": 4},
+        "r3": {"review_id": "r3", "review_text": "network pause on resume", "rating": 3},
+        "r4": {"review_id": "r4", "review_text": "stream buffer missing", "rating": 4},
+        "r5": {"review_id": "r5", "review_text": "slow networks hurt playback", "rating": 3},
     }
-    # Citation validation unit
     assert validate_citations(["r1", "hallucinated"], ["r1", "r2"]) == ["r1"]
-    out = ext._template_extract(cand, reviews, "none")
+    out = ext._representative_extract(cand, reviews, "none")
+    assert out.need_source == "representative_review"
+    assert out.llm_used is False
+    assert out.latent_need == quote
     print(
         {
             "llm_enabled": ext.llm_enabled,
-            "need": out.latent_need,
-            "verdict": out.verdict,
-            "llm_used": out.llm_used,
+            "need_source": out.need_source,
+            "need": out.latent_need[:80],
             "cited": out.cited_review_ids,
         }
     )

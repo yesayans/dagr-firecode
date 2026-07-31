@@ -81,7 +81,7 @@ class RoadmapResolver:
                         )
                     degraded.append("GitHub live fetch empty; using filtered cache")
                 elif live_repo and not self.settings.github_token_present:
-                    degraded.append("no GITHUB_TOKEN; using roadmap cache")
+                    degraded.append("GitHub unauthenticated; using roadmap cache")
 
                 if items.empty:
                     return ResolveResult(
@@ -118,22 +118,7 @@ class RoadmapResolver:
                     notes="github live",
                 )
         elif repo and not self.settings.github_token_present:
-            degraded.append("no GITHUB_TOKEN")
-            # Try silent_stakeholder fetch (will also 403 without token) then web
-            try:
-                from silent_stakeholder.roadmap_github import fetch_github_roadmap
-                from silent_stakeholder.schema import ProductContext
-
-                ctx = ProductContext(
-                    product_id=package_name,
-                    display_name=app_name,
-                    package_name=package_name,
-                )
-                ctx = fetch_github_roadmap(ctx, repo, max_issues=40)
-                if "403" in (ctx.notes or "") or "failed" in (ctx.notes or "").lower():
-                    degraded.append("GitHub unauthenticated fetch failed/403")
-            except Exception as e:
-                degraded.append(f"GitHub wrap error: {e}")
+            degraded.append("GitHub unauthenticated")
 
         # Web fallback via silent_stakeholder search + relevance-gated page fetch
         web_urls: list[str] = []

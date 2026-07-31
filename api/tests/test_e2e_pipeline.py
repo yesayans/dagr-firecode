@@ -98,6 +98,8 @@ def test_e2e_none_mode_offline(seeded):
     for g in result["gaps"]:
         assert g["verdict"] == "UNVERIFIED"
         assert g["evidence"], "hard rule: evidence required"
+        assert g["need_source"] == "representative_review"
+        assert not g["need"].startswith("Reliable control over")
         assert g["metrics"]["components"]
         assert g["metrics"]["weights"]
         assert g["metrics"]["need_bearing_share"] == 1.0

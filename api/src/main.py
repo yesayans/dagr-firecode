@@ -64,6 +64,7 @@ def _health_payload() -> dict[str, Any]:
         "llm_enabled": settings.llm_enabled,
         "llm_model": settings.openrouter_model,
         "github_token": settings.github_token_present,
+        "github_token_source": settings.github_token_source,
         "embedding_backend": active_backend,
         "match_threshold": settings.active_match_threshold(active_backend),
     }
@@ -72,6 +73,9 @@ def _health_payload() -> dict[str, Any]:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
+    settings.resolve_github_credentials()
+    # Log source only — never the secret
+    logger.info("GitHub token source: %s", settings.github_token_source)
     reset_store_singleton()
     store = get_store(settings)
     catalog = load_catalog(settings)

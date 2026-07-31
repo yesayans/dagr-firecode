@@ -299,8 +299,9 @@ class GitHubScraper:
         s = requests.Session()
         s.headers["User-Agent"] = UA
         s.headers["Accept"] = "application/vnd.github+json"
-        if self.settings.github_token_present:
-            s.headers["Authorization"] = f"Bearer {self.settings.github_token.strip()}"
+        token = self.settings.effective_github_token
+        if token:
+            s.headers["Authorization"] = f"Bearer {token}"
         return s
 
     def fetch_issues_and_milestones(
@@ -313,7 +314,7 @@ class GitHubScraper:
         """
         degraded: list[str] = []
         if not self.settings.github_token_present:
-            degraded.append("no GITHUB_TOKEN")
+            degraded.append("GitHub unauthenticated")
             return self._empty(), degraded
 
         session = self._session()
@@ -437,7 +438,7 @@ class GitHubScraper:
         """GitHub search API fallback for guess_repo."""
         degraded: list[str] = []
         if not self.settings.github_token_present:
-            degraded.append("no GITHUB_TOKEN for repo search")
+            degraded.append("GitHub unauthenticated; repo search skipped")
             return None, degraded
         session = self._session()
         r = session.get(
