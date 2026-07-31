@@ -17,8 +17,8 @@ node_modules/
 .next/
 out/
 
-# Local caches (regenerable)
-data/reviews/
+# Local caches (regenerable). data/reviews/ is committed: the parquet snapshots are
+# small and guarantee the demo runs without a HuggingFace download.
 data/cache/
 .hf_cache/
 

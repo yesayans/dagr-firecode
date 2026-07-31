@@ -1,0 +1,2 @@
+# Optional MiniLM embedding backend (opt-in via EMBEDDING_BACKEND=minilm)
+sentence-transformers>=3.0.0
