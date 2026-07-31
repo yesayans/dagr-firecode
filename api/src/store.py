@@ -753,21 +753,39 @@ def reset_store_singleton() -> None:
 
 
 def load_catalog(settings: Settings | None = None) -> list[dict[str, Any]]:
+    """Load searchable apps from sealuzh discovery (OSS + closed-source)."""
     settings = settings or get_settings()
     path = settings.data_dir / "discovery" / "candidates_sealuzh.json"
     if not path.exists():
         return []
     with path.open("r", encoding="utf-8") as f:
         rows = json.load(f)
-    # Enrich display names from known roadmaps
     name_map = {
         "de.danoeh.antennapod": "AntennaPod",
         "org.isoron.uhabits": "Loop Habit Tracker",
         "com.grarak.kerneladiutor": "Kernel Adiutor",
+        "com.ichi2.anki": "AnkiDroid",
+        "org.wordpress.android": "WordPress",
+        "org.schabi.newpipe": "NewPipe",
+        "com.termux": "Termux",
+        "org.wikipedia": "Wikipedia",
+        "org.thoughtcrime.securesms": "Signal",
+        "com.google.android.gms": "Google Play services",
+        "org.telegram.messenger": "Telegram",
     }
     for r in rows:
         pkg = r.get("package_name") or ""
-        r.setdefault("display_name", name_map.get(pkg) or _display_from_package(pkg))
+        gh = (r.get("github_repo") or "").strip() or None
+        r["github_repo"] = gh
+        # Catalog may include closed-source apps with no public roadmap.
+        if not r.get("roadmap_source"):
+            r["roadmap_source"] = "github" if gh else "none"
+        if not r.get("display_name"):
+            r["display_name"] = (
+                r.get("app_name")
+                or name_map.get(pkg)
+                or _display_from_package(pkg)
+            )
     return rows
 
 

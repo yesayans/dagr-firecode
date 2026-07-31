@@ -38,11 +38,8 @@ export default function HomePage() {
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const q = query.trim();
-    // Don't open the results panel for an empty query — it used to cover
-    // the "Analyze your own data" section underneath.
+    // Empty query: keep prior browse results; only search when typing.
     if (!q) {
-      setResults([]);
-      setOpen(false);
       setSearching(false);
       setSearchError(null);
       return;
@@ -51,7 +48,7 @@ export default function HomePage() {
       setSearching(true);
       setSearchError(null);
       try {
-        const apps = await searchApps(q);
+        const apps = await searchApps(q, 40);
         setResults(apps);
         setOpen(true);
       } catch (err) {
@@ -151,8 +148,20 @@ export default function HomePage() {
                 setSelected(null);
               }}
               onFocus={() => {
-                if (query.trim() && (results.length > 0 || searchError)) {
-                  setOpen(true);
+                setOpen(true);
+                if (!query.trim() && results.length === 0 && !searching) {
+                  void searchApps("", 40)
+                    .then((apps) => {
+                      setResults(apps);
+                      setSearchError(null);
+                    })
+                    .catch((err) => {
+                      setSearchError(
+                        err instanceof Error
+                          ? err.message
+                          : "Failed to search apps",
+                      );
+                    });
                 }
               }}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 text-lg text-[var(--foreground)] outline-none ring-0 placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_18%,transparent)]"
@@ -166,17 +175,22 @@ export default function HomePage() {
 
           {/* In-flow panel (not absolute) so it pushes the custom-upload section
               down instead of covering it. */}
-          {open && query.trim() && (results.length > 0 || searchError || !searching) && (
+          {open && (results.length > 0 || searchError || searching) && (
             <ul
               role="listbox"
               className="max-h-72 w-full overflow-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] py-2 shadow-xl"
             >
+              {!query.trim() && !searchError && (
+                <li className="px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                  Top apps in catalog · github + closed-source (no public roadmap)
+                </li>
+              )}
               {searchError && (
                 <li className="px-4 py-3 text-sm text-red-600 dark:text-red-300">
                   {searchError}
                 </li>
               )}
-              {!searchError && !searching && results.length === 0 && (
+              {!searchError && !searching && results.length === 0 && query.trim() && (
                 <li className="px-4 py-3 text-sm text-[var(--muted)]">
                   {t("noApps", { q: query })}
                 </li>
@@ -199,8 +213,16 @@ export default function HomePage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-mono text-xs uppercase text-[var(--muted)]">
-                        {app.roadmap_source}
+                      <p
+                        className={`font-mono text-xs uppercase ${
+                          app.roadmap_source === "none"
+                            ? "text-amber-800 dark:text-amber-300"
+                            : "text-[var(--muted)]"
+                        }`}
+                      >
+                        {app.roadmap_source === "none"
+                          ? "closed / no roadmap"
+                          : app.roadmap_source}
                       </p>
                       <p className="text-xs text-[var(--muted)]">
                         {app.review_count.toLocaleString()} {t("reviews").toLowerCase()}

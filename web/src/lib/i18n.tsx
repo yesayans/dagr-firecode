@@ -17,7 +17,7 @@ const dict = {
     brandEyebrow: "Silent Stakeholder",
     tagline: "Cross-reference app-store reviews against a product roadmap — for any app, including closed-source ones with no GitHub repo — and surface latent needs the roadmap misses.",
     findApp: "Find an app",
-    searchPlaceholder: "Search by name or package — try AntennaPod, Signal, Instagram…",
+    searchPlaceholder: "Search the catalog — AntennaPod, AcDisplay, Kernel Adiutor…",
     searching: "searching…",
     noApps: "No apps matched \"{q}\". Use the form below to upload your own reviews instead.",
     resolving: "Resolving roadmap source…",

@@ -161,6 +161,9 @@ Base URL `http://127.0.0.1:8000`. All responses JSON. CORS open to `http://local
 
 ### `GET /apps?q=<substring>&limit=25`
 Returns `App[]` from the catalog (seeded from `data/discovery/candidates_sealuzh.json`).
+Catalog includes **all** sealuzh packages with enough reviews — open-source
+(`roadmap_source: github` when a repo is known) and closed-source
+(`roadmap_source: none`).
 
 ### `POST /apps/resolve`
 Request: `{ "app_name": "AntennaPod", "package_name": "de.danoeh.antennapod", "github_repo": null, "refresh": false }`
