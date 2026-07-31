@@ -23,17 +23,30 @@ against)"** and no IGNORED/UNDER-PRIORITIZED/MISUNDERSTOOD badge may ever be sho
 
 ## 3. Verdict rules (backend, pre-LLM)
 
-Let `s` = best cosine similarity between a review-cluster centroid and any roadmap item.
+Let `s` = best cosine similarity between a review-cluster centroid and any roadmap item
+that is **contemporaneous with the review corpus** (item `created_at` ≤
+`review_window_end`). Items created after the corpus window never count as covering a
+complaint — they are reserved for retrospective validation (section 4).
+
 `MATCH_THRESHOLD` defaults to `0.45` and is per-embedding-backend configurable.
 
-- `s < MATCH_THRESHOLD` → **IGNORED** — nothing on the roadmap addresses this theme.
-- `s >= MATCH_THRESHOLD`, matched item is **closed/shipped/released** yet the cluster's
-  reviews are still complaining and are more recent than the item's close date →
-  **MISUNDERSTOOD** — the team believes this is solved; users disagree.
-- `s >= MATCH_THRESHOLD`, matched item is open but **stale** (`updated_at` older than 365
-  days) or has **no milestone** → **UNDER-PRIORITIZED**.
-- `s >= MATCH_THRESHOLD`, matched item is open, fresh, and milestoned → **well covered,
-  drop the cluster** (do not emit a gap).
+All recency / staleness comparisons are anchored to the **review corpus window**, not
+wall-clock `now`. Compute `review_window_start` / `review_window_end` from the
+`created_at` range of reviews used in the job; the reference date is
+`review_window_end`. Persist both bounds (and the reference date) on every gap's
+`metrics` and on the job `stats`.
+
+- `s < MATCH_THRESHOLD` → **IGNORED** — nothing on the contemporaneous roadmap addresses
+  this theme.
+- `s >= MATCH_THRESHOLD`, matched item is **closed/shipped/released as of
+  `review_window_end`** (its `closed_at` ≤ window end) yet reviews inside the window
+  still complain about it → **MISUNDERSTOOD** — the team believed it was done; users
+  in the corpus disagree.
+- `s >= MATCH_THRESHOLD`, matched item is **open as of `review_window_end`** but
+  **stale** (last touch more than 365 days before `review_window_end`) or has
+  **no milestone** → **UNDER-PRIORITIZED**.
+- `s >= MATCH_THRESHOLD`, matched item is open as of the window, fresh within 365 days
+  of `review_window_end`, and milestoned → **well covered, drop the cluster**.
 - mode `none` → **UNVERIFIED**, no similarity step at all.
 
 The LLM may *confirm or adjust* a verdict within the allowed set for the mode; it may
@@ -61,6 +74,40 @@ them into the `payload` of each `gap_evidence` row of `source_type='review'`.
 The LLM returns its own 0–100 confidence; the stored value is
 `0.6 * deterministic + 0.4 * llm` when the LLM ran, and the deterministic value alone
 otherwise. `confidence_rationale` must state which formula was used.
+
+### Retrospective validation (corroboration only — does not change verdict)
+
+When the review corpus predates the live roadmap (e.g. 2016 reviews vs 2026 GitHub),
+each gap may carry an optional signal that the need was later addressed:
+
+- `later_addressed_by`: best roadmap item created or closed **after**
+  `review_window_end` whose embedding similarity to the cluster exceeds
+  `MATCH_THRESHOLD`, or `null` when none exist. Shape:
+  `{ title, url, state, date, similarity }`.
+- `validated_by_later_roadmap`: `true` iff `later_addressed_by` is non-null.
+
+This is **not** a verdict. A gap that is `IGNORED` against the 2016-era roadmap can
+still show `validated_by_later_roadmap: true` if the product shipped a fix years
+later — evidence the method predicted real roadmap movement. Conversely, a decade
+with no post-window match strengthens the claim of a standing ignored need.
+
+Also persist on every `GapMetrics` (and job `stats`):
+
+- `review_window_start` / `review_window_end` / `reference_date` (ISO-8601;
+  `reference_date === review_window_end`)
+
+### Need-bearing selection (before clustering)
+
+Clustering runs only on **need-bearing** reviews — reviews that express an unmet want,
+a problem, or a low rating. Pure praise with no want/problem language is excluded at
+the *review* level (not by cluster mean rating), so polite four-star feedback that
+mentions a latent goal remains eligible. Job `stats` reports:
+
+- `reviews_total` — all reviews loaded for the job
+- `reviews_need_bearing` — count that survived the filter and were clustered
+
+Each gap's `metrics.need_bearing_share` is the share of that cluster's members that
+were classified need-bearing (1.0 when clustering the filtered set only).
 
 ## 5. Hard rules
 
@@ -138,6 +185,14 @@ interface EvidenceItem {
   payload: Record<string, unknown>;
 }
 
+interface LaterAddressedBy {
+  title: string;
+  url: string | null;
+  state: string | null;
+  date: string | null;       // ISO-8601 created/closed date of the later item
+  similarity: number;
+}
+
 interface GapMetrics {
   cluster_size: number;
   total_reviews: number;
@@ -146,7 +201,7 @@ interface GapMetrics {
   matched_item_title: string | null;
   matched_item_url: string | null;
   matched_item_state: string | null;
-  matched_item_age_days: number | null;
+  matched_item_age_days: number | null;  // age as of review_window_end, not wall-clock
   mean_rating: number;
   rating_spread: number;
   cohesion: number;
@@ -155,6 +210,12 @@ interface GapMetrics {
   deterministic_confidence: number;
   llm_confidence: number | null;
   keywords: string[];
+  review_window_start: string;   // ISO-8601
+  review_window_end: string;     // ISO-8601 — also the temporal reference_date
+  reference_date: string;        // === review_window_end
+  later_addressed_by: LaterAddressedBy | null;
+  validated_by_later_roadmap: boolean;
+  need_bearing_share: number;    // 0–1 share of cluster members classified need-bearing
 }
 
 interface Gap {
@@ -187,6 +248,12 @@ interface Job {
     embedding_backend: string;
     elapsed_s: number;
     degraded: string[];          // human-readable notes, e.g. "no GITHUB_TOKEN"
+    review_provenance: "hf" | "parquet_cache" | "fixture";
+    reviews_total: number;         // all loaded reviews
+    reviews_need_bearing: number;  // clustered after per-review need filter
+    review_window_start: string; // ISO-8601
+    review_window_end: string;
+    reference_date: string;      // === review_window_end
   };
   gaps: Gap[];
   created_at: string;

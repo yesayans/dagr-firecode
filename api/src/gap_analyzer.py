@@ -11,7 +11,6 @@ import pandas as pd
 
 from src.config import Settings, get_settings
 
-
 WEIGHTS_ROADMAP = {
     "volume": 0.30,
     "novelty": 0.25,
@@ -27,6 +26,32 @@ WEIGHTS_NONE = {
     "spread": 0.15,
 }
 
+_DATE_FORMATS = (
+    "%Y-%m-%dT%H:%M:%S%z",
+    "%Y-%m-%dT%H:%M:%S.%f%z",
+    "%Y-%m-%dT%H:%M:%SZ",
+    "%Y-%m-%dT%H:%M:%S",
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%d",
+    "%B %d %Y",
+    "%b %d %Y",
+    "%B %d, %Y",
+    "%b %d, %Y",
+)
+
+
+@dataclass
+class ReviewWindow:
+    start: datetime
+    end: datetime
+
+    def to_iso(self) -> dict[str, str]:
+        return {
+            "review_window_start": self.start.isoformat(),
+            "review_window_end": self.end.isoformat(),
+            "reference_date": self.end.isoformat(),
+        }
+
 
 @dataclass
 class CandidateGap:
@@ -41,6 +66,60 @@ class CandidateGap:
     cohesion: float = 0.0
     mean_rating: float = 3.0
     cluster_size: int = 0
+
+
+def parse_dt(value: Any) -> datetime | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        dt = value
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    if isinstance(value, float) and np.isnan(value):
+        return None
+    s = str(value).strip()
+    if not s or s.lower() in {"none", "nan", "nat"}:
+        return None
+    if s.endswith("Z"):
+        s_z = s[:-1] + "+0000"
+        for fmt in ("%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%S.%f%z"):
+            try:
+                return datetime.strptime(s_z, fmt).astimezone(timezone.utc)
+            except ValueError:
+                pass
+    try:
+        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except ValueError:
+        pass
+    # Normalise "April 03 2016" → try formats
+    for fmt in _DATE_FORMATS:
+        try:
+            dt = datetime.strptime(s, fmt)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt.astimezone(timezone.utc)
+        except ValueError:
+            continue
+    return None
+
+
+def compute_review_window(reviews_df: pd.DataFrame) -> ReviewWindow:
+    """Anchor temporal rules to the corpus, not wall-clock now."""
+    dates: list[datetime] = []
+    if reviews_df is not None and not reviews_df.empty and "created_at" in reviews_df.columns:
+        for v in reviews_df["created_at"].tolist():
+            dt = parse_dt(v)
+            if dt is not None:
+                dates.append(dt)
+    if not dates:
+        # Fallback only when corpus has no parseable dates
+        now = datetime.now(timezone.utc)
+        return ReviewWindow(start=now, end=now)
+    return ReviewWindow(start=min(dates), end=max(dates))
 
 
 def compute_confidence(
@@ -83,10 +162,68 @@ def reconstruct_confidence(metrics: dict[str, Any]) -> float:
     return round(score, 2)
 
 
-class GapMatrix:
-    """Implement CONTRACT.md sections 3 and 4 exactly."""
+def _is_closed_like(item: dict[str, Any]) -> bool:
+    state = str(item.get("state") or "open").lower()
+    if state in ("closed", "shipped", "released", "done", "completed"):
+        return True
+    labels = str(item.get("labels") or "").lower()
+    kind = str(item.get("kind") or "").lower()
+    return kind in ("current_feature",) or "shipped" in labels
 
-    def __init__(self, settings: Settings | None = None, match_threshold: float | None = None) -> None:
+
+def _item_created(item: dict[str, Any]) -> datetime | None:
+    return parse_dt(item.get("created_at"))
+
+
+def _item_updated(item: dict[str, Any]) -> datetime | None:
+    return parse_dt(item.get("updated_at")) or _item_created(item)
+
+
+def _item_closed(item: dict[str, Any]) -> datetime | None:
+    return parse_dt(item.get("closed_at"))
+
+
+def classify_item_vs_window(
+    item: dict[str, Any], window: ReviewWindow
+) -> str:
+    """
+    Return 'future' | 'closed' | 'open' relative to review_window_end.
+    Items created after the corpus window are future work — not covering.
+    """
+    created = _item_created(item)
+    if created is not None and created > window.end:
+        return "future"
+    closed = _item_closed(item)
+    if closed is not None:
+        if closed <= window.end:
+            return "closed"
+        # Closed after the corpus → still open as of the review window
+        return "open"
+    if _is_closed_like(item):
+        # Shipped/closed without a usable close date → treat as closed as-of window
+        # only when not clearly created after the window (already handled).
+        return "closed"
+    return "open"
+
+
+def age_days_as_of(item: dict[str, Any], window: ReviewWindow) -> float | None:
+    """Days since last touch as of review_window_end (never wall-clock now)."""
+    updated = _item_updated(item)
+    created = _item_created(item)
+    # Prefer the latest timestamp that is still within the window
+    candidates = [t for t in (updated, created) if t is not None and t <= window.end]
+    if not candidates:
+        return None
+    ref = max(candidates)
+    return max(0.0, (window.end - ref).total_seconds() / 86400.0)
+
+
+class GapMatrix:
+    """Implement CONTRACT.md sections 3 and 4 (corpus-anchored temporal rules)."""
+
+    def __init__(
+        self, settings: Settings | None = None, match_threshold: float | None = None
+    ) -> None:
         self.settings = settings or get_settings()
         self.match_threshold = (
             match_threshold
@@ -104,34 +241,56 @@ class GapMatrix:
         roadmap_embeddings: np.ndarray,
         roadmap_source: str,
         total_reviews: int,
+        review_window: ReviewWindow | None = None,
     ) -> list[CandidateGap]:
-        mode = roadmap_source if roadmap_source in ("github", "web", "hybrid", "none") else "none"
+        mode = (
+            roadmap_source
+            if roadmap_source in ("github", "web", "hybrid", "none")
+            else "none"
+        )
+        window = review_window or compute_review_window(reviews_df)
+        window_meta = window.to_iso()
+
         if mode == "none" or roadmap_items is None or roadmap_items.empty:
-            return self._analyze_none(clusters, reviews_df, total_reviews)
+            return self._analyze_none(clusters, reviews_df, total_reviews, window_meta)
+
+        items = [row.to_dict() for _, row in roadmap_items.iterrows()]
+        n_items = len(items)
+        if roadmap_embeddings is None or len(roadmap_embeddings) == 0:
+            emb = np.zeros((n_items, 1))
+        else:
+            emb = np.asarray(roadmap_embeddings)
+
+        # Contemporaneous vs post-window items
+        contemp_idx = [
+            i
+            for i, it in enumerate(items)
+            if classify_item_vs_window(it, window) != "future"
+        ]
+        future_idx = [
+            i
+            for i, it in enumerate(items)
+            if classify_item_vs_window(it, window) == "future"
+        ]
 
         max_size = max((c["size"] for c in clusters), default=1)
         candidates: list[CandidateGap] = []
 
-        item_states = []
-        for _, row in roadmap_items.iterrows():
-            item_states.append(row.to_dict())
-
         for cluster in clusters:
             centroid = cluster["centroid"]
-            if roadmap_embeddings is None or len(roadmap_embeddings) == 0:
-                best_sim = None
-                best_idx = None
-            else:
-                sims = roadmap_embeddings @ centroid
-                best_idx = int(np.argmax(sims))
-                best_sim = float(sims[best_idx])
-
+            best_sim, best_idx = self._best_match(centroid, emb, contemp_idx)
             verdict, matched = self._verdict(
-                best_sim, best_idx, item_states, cluster, reviews_df
+                best_sim, best_idx, items, cluster, reviews_df, window
             )
             if verdict is None:
-                # well covered — drop
                 continue
+
+            later = self._later_addressed(centroid, emb, items, future_idx)
+            # Also consider items closed/created after window that match (post-window activity)
+            later_extra = self._later_addressed_post_close(
+                centroid, emb, items, window
+            )
+            later = later or later_extra
 
             conf, components, weights = compute_confidence(
                 cluster_size=cluster["size"],
@@ -142,7 +301,8 @@ class GapMatrix:
                 rating_spread=cluster["rating_spread"],
                 mode=mode,
             )
-            matched_title = matched.get("text", "")[:120] if matched else None
+            matched_title = (matched.get("text") or "")[:120] if matched else None
+            age = age_days_as_of(matched, window) if matched else None
             metrics = {
                 "cluster_size": cluster["size"],
                 "total_reviews": total_reviews,
@@ -151,7 +311,7 @@ class GapMatrix:
                 "matched_item_title": matched_title,
                 "matched_item_url": (matched or {}).get("url"),
                 "matched_item_state": (matched or {}).get("state"),
-                "matched_item_age_days": (matched or {}).get("age_days"),
+                "matched_item_age_days": age,
                 "mean_rating": cluster["mean_rating"],
                 "rating_spread": cluster["rating_spread"],
                 "cohesion": cluster["cohesion"],
@@ -160,6 +320,10 @@ class GapMatrix:
                 "deterministic_confidence": conf,
                 "llm_confidence": None,
                 "keywords": cluster.get("keywords") or [],
+                "need_bearing_share": float(cluster.get("need_bearing_share") or 1.0),
+                **window_meta,
+                "later_addressed_by": later,
+                "validated_by_later_roadmap": later is not None,
             }
             candidates.append(
                 CandidateGap(
@@ -187,6 +351,7 @@ class GapMatrix:
         clusters: list[dict[str, Any]],
         reviews_df: pd.DataFrame,
         total_reviews: int,
+        window_meta: dict[str, str],
     ) -> list[CandidateGap]:
         max_size = max((c["size"] for c in clusters), default=1)
         out: list[CandidateGap] = []
@@ -217,6 +382,10 @@ class GapMatrix:
                 "deterministic_confidence": conf,
                 "llm_confidence": None,
                 "keywords": cluster.get("keywords") or [],
+                "need_bearing_share": float(cluster.get("need_bearing_share") or 1.0),
+                **window_meta,
+                "later_addressed_by": None,
+                "validated_by_later_roadmap": False,
             }
             out.append(
                 CandidateGap(
@@ -236,6 +405,18 @@ class GapMatrix:
         out.sort(key=lambda c: c.metrics["deterministic_confidence"], reverse=True)
         return out
 
+    def _best_match(
+        self,
+        centroid: np.ndarray,
+        emb: np.ndarray,
+        indices: list[int],
+    ) -> tuple[float | None, int | None]:
+        if not indices or emb is None or len(emb) == 0:
+            return None, None
+        sims = emb[indices] @ centroid
+        local = int(np.argmax(sims))
+        return float(sims[local]), indices[local]
+
     def _verdict(
         self,
         best_sim: float | None,
@@ -243,6 +424,7 @@ class GapMatrix:
         items: list[dict[str, Any]],
         cluster: dict[str, Any],
         reviews_df: pd.DataFrame,
+        window: ReviewWindow,
     ) -> tuple[str | None, dict[str, Any] | None]:
         threshold = self.match_threshold
         if best_sim is None or best_sim < threshold:
@@ -252,80 +434,117 @@ class GapMatrix:
         if matched is None:
             return "IGNORED", None
 
-        state = str(matched.get("state") or "open").lower()
-        closed_like = state in ("closed", "shipped", "released", "done", "completed")
-        # Labels may mark shipped current features
-        labels = str(matched.get("labels") or "").lower()
-        kind = str(matched.get("kind") or "").lower()
-        if kind in ("current_feature",) or "shipped" in labels:
-            closed_like = True
+        as_of = classify_item_vs_window(matched, window)
+        if as_of == "future":
+            # Should not be selected from contemp_idx; treat as uncovered
+            return "IGNORED", None
 
-        if closed_like:
-            if self._still_complaining_after_close(cluster, reviews_df, matched):
+        if as_of == "closed":
+            if self._misunderstood(cluster, reviews_df, matched, window):
                 return "MISUNDERSTOOD", matched
-            # Closed and users not complaining more recently → treat as covered
             return None, matched
 
-        # Open item
-        age = matched.get("age_days")
-        if age is None and matched.get("updated_at"):
-            age = _age_days(matched.get("updated_at"))
+        # Open as of window end
+        age = age_days_as_of(matched, window)
         stale = age is not None and float(age) > 365
         has_milestone = bool(matched.get("milestone_title"))
         if stale or not has_milestone:
             return "UNDER-PRIORITIZED", matched
-        # open, fresh, milestoned → well covered
         return None, matched
 
-    def _still_complaining_after_close(
+    def _misunderstood(
         self,
         cluster: dict[str, Any],
         reviews_df: pd.DataFrame,
         matched: dict[str, Any],
+        window: ReviewWindow,
     ) -> bool:
-        closed_at = matched.get("closed_at")
-        if not closed_at:
-            # Shipped feature without close date — if reviews exist (filtered ≤4★), treat as misunderstood
+        """
+        Closed/shipped before review_window_end, and reviews in the window
+        still complain (at least one review on/after close, or unknown dates).
+        """
+        closed = _item_closed(matched)
+        if closed is None:
+            # Shipped without close date — corpus still complaining → misunderstood
             return True
-        try:
-            close_dt = datetime.fromisoformat(str(closed_at).replace("Z", "+00:00"))
-        except Exception:
-            return True
+        if closed > window.end:
+            return False
 
         ids = set(cluster["review_ids"])
         sub = reviews_df[reviews_df["review_id"].isin(ids)]
-        recent = False
         for _, row in sub.iterrows():
-            created = row.get("created_at")
-            if not created or (isinstance(created, float) and np.isnan(created)):
-                # Unknown date but low rating → count as still complaining
-                recent = True
-                continue
-            try:
-                dt = datetime.fromisoformat(str(created).replace("Z", "+00:00"))
-                if dt.tzinfo is None:
-                    dt = dt.replace(tzinfo=timezone.utc)
-                if dt > close_dt:
-                    recent = True
-                    break
-            except Exception:
-                recent = True
-        return recent
+            dt = parse_dt(row.get("created_at"))
+            if dt is None:
+                return True
+            if dt >= closed and dt <= window.end:
+                return True
+            # Review after close even if parse put it slightly outside — still valid complaint
+            if dt > closed:
+                return True
+        return False
 
+    def _later_addressed(
+        self,
+        centroid: np.ndarray,
+        emb: np.ndarray,
+        items: list[dict[str, Any]],
+        future_idx: list[int],
+    ) -> dict[str, Any] | None:
+        """Best post-window item matching the cluster above threshold."""
+        if not future_idx:
+            return None
+        sim, idx = self._best_match(centroid, emb, future_idx)
+        if sim is None or idx is None or sim < self.match_threshold:
+            return None
+        return self._later_payload(items[idx], sim)
 
-def _age_days(ts: str | None) -> float | None:
-    if not ts:
-        return None
-    try:
-        dt = datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
-        now = datetime.now(timezone.utc)
-        return max(0.0, (now - dt).total_seconds() / 86400.0)
-    except Exception:
-        return None
+    def _later_addressed_post_close(
+        self,
+        centroid: np.ndarray,
+        emb: np.ndarray,
+        items: list[dict[str, Any]],
+        window: ReviewWindow,
+    ) -> dict[str, Any] | None:
+        """
+        Items created before/during the window but closed/updated after it
+        also count as retrospective validation (shipped after the complaints).
+        """
+        idxs = []
+        for i, it in enumerate(items):
+            created = _item_created(it)
+            if created is not None and created > window.end:
+                continue  # already handled as future
+            closed = _item_closed(it)
+            updated = _item_updated(it)
+            post = False
+            if closed is not None and closed > window.end:
+                post = True
+            if updated is not None and updated > window.end and _is_closed_like(it):
+                post = True
+            if post:
+                idxs.append(i)
+        if not idxs:
+            return None
+        sim, idx = self._best_match(centroid, emb, idxs)
+        if sim is None or idx is None or sim < self.match_threshold:
+            return None
+        return self._later_payload(items[idx], sim)
+
+    def _later_payload(self, item: dict[str, Any], sim: float) -> dict[str, Any]:
+        closed = _item_closed(item)
+        created = _item_created(item)
+        updated = _item_updated(item)
+        date = closed or created or updated
+        return {
+            "title": (item.get("text") or "")[:200],
+            "url": item.get("url"),
+            "state": item.get("state"),
+            "date": date.isoformat() if date else None,
+            "similarity": float(sim),
+        }
 
 
 def main() -> None:
-    # Quick confidence reconstruct check
     conf, comps, weights = compute_confidence(
         cluster_size=10,
         max_cluster_size=20,

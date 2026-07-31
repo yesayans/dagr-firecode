@@ -101,6 +101,30 @@ def build_backend(
     return TfidfSvdBackend(), degraded
 
 
+def adaptive_k_range(n: int) -> tuple[int, int]:
+    """Silhouette search bounds that fit need-bearing volume (~40–150 typical)."""
+    if n < 8:
+        return 2, 2
+    # Prefer finer themes on mid-size corpora without forcing k≥8
+    k_max = max(2, min(14, n // 4))
+    if n < 40:
+        k_min = 2
+    elif n < 80:
+        k_min = 3
+    else:
+        k_min = 4
+    k_min = min(k_min, k_max)
+    return k_min, k_max
+
+
+def min_cluster_size(n: int) -> int:
+    if n < 40:
+        return 3
+    if n < 90:
+        return 4
+    return 5
+
+
 class EmbeddingEngine:
     """Fit on union of review+roadmap text so TF-IDF spaces are comparable."""
 
@@ -124,8 +148,8 @@ class EmbeddingEngine:
         self, reviews_df: pd.DataFrame, roadmap_texts: list[str] | None = None
     ) -> dict[str, Any]:
         """
-        Cluster reviews. Fit vectorizer on union(review texts, roadmap texts).
-        Returns cluster ids, centroids, cohesion, keywords; drops clusters < 5 members.
+        Cluster need-bearing reviews (caller filters). Fit vectorizer on the
+        union of those texts + roadmap texts so spaces stay comparable.
         """
         if reviews_df is None or reviews_df.empty:
             return {
@@ -133,43 +157,49 @@ class EmbeddingEngine:
                 "embeddings": np.zeros((0, 1)),
                 "clusters": [],
                 "backend": self.backend_name,
+                "k": 0,
+                "silhouette": -1.0,
             }
+
+        # Ensure need_bearing column for share metric
+        if "need_bearing" not in reviews_df.columns:
+            reviews_df = reviews_df.copy()
+            reviews_df["need_bearing"] = True
 
         texts = [str(t) for t in reviews_df["review_text"].tolist()]
         roadmap_texts = roadmap_texts or []
         union = texts + [str(t) for t in roadmap_texts if t]
 
-        # Fit on union so roadmap transform shares the space (critical for TF-IDF)
         union_emb = self.backend.fit_transform(union)
         review_emb = union_emb[: len(texts)]
 
         n = len(texts)
-        if n < 5:
-            # Single pseudo-cluster when volume is tiny
+        min_size = min_cluster_size(n)
+
+        if n < min_size:
             labels = np.zeros(n, dtype=int)
             clusters = [
                 self._cluster_payload(0, labels, review_emb, reviews_df, texts)
             ]
-            clusters = [c for c in clusters if c["size"] >= 1]
             return {
                 "reviews_df": reviews_df.assign(cluster_id=labels),
                 "embeddings": review_emb,
                 "clusters": clusters,
                 "backend": self.backend_name,
+                "k": 1,
+                "silhouette": -1.0,
                 "roadmap_fit_texts": roadmap_texts,
+                "min_cluster_size": min_size,
             }
 
-        k_min, k_max = 8, 20
-        # Clamp for small corpora
-        k_max = min(k_max, max(2, n // 5))
-        k_min = min(k_min, k_max)
-        k_min = max(2, k_min)
+        k_min, k_max = adaptive_k_range(n)
 
         best_k = k_min
         best_score = -1.0
         best_labels = None
         for k in range(k_min, k_max + 1):
             km = KMeans(n_clusters=k, random_state=42, n_init=10)
+            # Equal weights: polite 4★ wants must form their own centroids
             labels = km.fit_predict(review_emb)
             if len(set(labels)) < 2:
                 continue
@@ -190,17 +220,10 @@ class EmbeddingEngine:
         clusters = []
         for cid in sorted(set(labels.tolist())):
             payload = self._cluster_payload(cid, labels, review_emb, reviews_df, texts)
-            if payload["size"] >= 5 or (n < 25 and payload["size"] >= 3):
-                # For tiny fixtures allow min 3; production drops < 5
-                if n >= 25 and payload["size"] < 5:
-                    continue
+            if payload["size"] >= min_size:
                 clusters.append(payload)
 
-        # Re-check: enforce <5 drop when enough reviews
-        if n >= 25:
-            clusters = [c for c in clusters if c["size"] >= 5]
-        else:
-            clusters = [c for c in clusters if c["size"] >= 3]
+        clusters.sort(key=lambda c: (-c["size"], c["mean_rating"]))
 
         return {
             "reviews_df": reviews_df.assign(cluster_id=labels),
@@ -210,6 +233,8 @@ class EmbeddingEngine:
             "k": best_k,
             "silhouette": best_score,
             "roadmap_fit_texts": roadmap_texts,
+            "min_cluster_size": min_size,
+            "k_range": [k_min, k_max],
         }
 
     def embed_roadmap_items(self, items_df: pd.DataFrame) -> np.ndarray:
@@ -231,7 +256,6 @@ class EmbeddingEngine:
         centroid = members.mean(axis=0)
         if np.linalg.norm(centroid) > 0:
             centroid = centroid / np.linalg.norm(centroid)
-        # cohesion = mean cosine of members to centroid
         if len(members) == 0:
             cohesion = 0.0
         else:
@@ -240,6 +264,8 @@ class EmbeddingEngine:
         keywords = _top_tfidf_keywords(member_texts, top_n=8)
         member_ids = reviews_df.loc[mask, "review_id"].tolist()
         ratings = reviews_df.loc[mask, "rating"].astype(float)
+        nb = reviews_df.loc[mask, "need_bearing"]
+        need_share = float(nb.astype(bool).mean()) if len(nb) else 1.0
         return {
             "cluster_id": int(cid),
             "size": int(mask.sum()),
@@ -249,6 +275,7 @@ class EmbeddingEngine:
             "review_ids": member_ids,
             "mean_rating": float(ratings.mean()) if len(ratings) else 3.0,
             "rating_spread": float(ratings.nunique() / 5.0) if len(ratings) else 0.0,
+            "need_bearing_share": need_share,
             "member_indices": np.where(mask)[0].tolist(),
             "representative_text": _most_central_text(member_texts, members, centroid),
         }
@@ -265,10 +292,9 @@ def _top_tfidf_keywords(texts: list[str], top_n: int = 8) -> list[str]:
         order = scores.argsort()[::-1][:top_n]
         return [str(terms[i]) for i in order if scores[i] > 0]
     except Exception:
-        # Fallback: word frequency
         from collections import Counter
 
-        words = []
+        words: list[str] = []
         for t in texts:
             words.extend(re_words(t))
         return [w for w, _ in Counter(words).most_common(top_n)]
@@ -292,11 +318,7 @@ def re_words(text: str) -> list[str]:
         "app",
         "just",
     }
-    return [
-        w
-        for w in re.findall(r"[a-z]{3,}", text.lower())
-        if w not in stop
-    ]
+    return [w for w in re.findall(r"[a-z]{3,}", text.lower()) if w not in stop]
 
 
 def _most_central_text(
@@ -311,33 +333,39 @@ def _most_central_text(
 
 
 def main() -> None:
+    from src.need_filter import annotate_need_bearing
+
     engine = EmbeddingEngine()
-    df = pd.DataFrame(
-        {
-            "review_id": [f"r{i}" for i in range(12)],
-            "review_text": [
-                "sleep timer does not stop playback when screen locks",
-                "sleep timer fails every night on bluetooth",
-                "cannot get sleep timer working with headphones",
-                "downloads stuck in queue forever never finish",
-                "download queue broken after update please fix",
-                "episode downloads fail silently no error shown",
-                "car bluetooth disconnects when phone locks screen",
-                "android auto bluetooth keeps dropping podcast audio",
-                "bluetooth audio cuts out in the car constantly",
-                "search cannot find episodes from subscribed podcasts",
-                "need better search across episode titles and notes",
-                "search is useless for finding old episodes",
-            ],
-            "rating": [2, 1, 2, 1, 2, 1, 2, 1, 2, 2, 3, 2],
-            "created_at": ["2024-01-01"] * 12,
-        }
+    df = annotate_need_bearing(
+        pd.DataFrame(
+            {
+                "review_id": [f"r{i}" for i in range(12)],
+                "review_text": [
+                    "sleep timer does not stop playback when screen locks",
+                    "sleep timer fails every night on bluetooth",
+                    "cannot get sleep timer working with headphones",
+                    "downloads stuck in queue forever never finish",
+                    "download queue broken after update please fix",
+                    "episode downloads fail silently no error shown",
+                    "car bluetooth disconnects when phone locks screen",
+                    "android auto bluetooth keeps dropping podcast audio",
+                    "bluetooth audio cuts out in the car constantly",
+                    "search cannot find episodes from subscribed podcasts",
+                    "need better search across episode titles and notes",
+                    "search is useless for finding old episodes",
+                ],
+                "rating": [2, 1, 2, 1, 2, 1, 2, 1, 2, 2, 3, 2],
+                "created_at": ["2024-01-01"] * 12,
+            }
+        )
     )
     result = engine.embed_and_cluster(df, roadmap_texts=["add dark mode support"])
     print(
         {
             "backend": result["backend"],
             "clusters": len(result["clusters"]),
+            "k": result.get("k"),
+            "k_range": result.get("k_range"),
             "keywords": [c["keywords"][:4] for c in result["clusters"]],
             "degraded": engine.degraded,
         }

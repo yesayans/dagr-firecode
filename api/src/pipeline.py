@@ -14,8 +14,9 @@ import pandas as pd
 from src.config import Settings, get_settings
 from src.data_ingestion import ReviewScraper
 from src.embedding_engine import EmbeddingEngine
-from src.gap_analyzer import GapMatrix
+from src.gap_analyzer import GapMatrix, compute_review_window
 from src.llm_extractor import ExtractedGap, LatentNeedExtractor
+from src.need_filter import select_need_bearing
 from src.resolver import RoadmapResolver
 from src.store import Store
 
@@ -56,6 +57,7 @@ class AnalysisPipeline:
         n_clusters = 0
         n_roadmap = 0
         roadmap_source = "none"
+        need_stats = {"reviews_total": 0, "reviews_need_bearing": 0}
 
         def cb(stage: str, progress: int, extra: dict[str, Any] | None = None) -> None:
             fields: dict[str, Any] = {
@@ -131,20 +133,35 @@ class AnalysisPipeline:
             )
 
             # --- reviews ---
-            reviews_df, rev_deg = self.reviews.fetch_reviews(
+            review_result = self.reviews.fetch_reviews(
                 app["package_name"], max_reviews=max_reviews
             )
-            degraded.extend(rev_deg)
+            reviews_df = review_result.df
+            degraded.extend(review_result.degraded)
+            review_provenance = review_result.provenance
+            if review_provenance == "fixture":
+                degraded.append(
+                    "INTEGRITY: using fixture reviews — do not attribute quotes to real users"
+                )
             if reviews_df is None or reviews_df.empty:
                 raise RuntimeError(
                     f"No reviews available for {app['package_name']} "
                     "(missing parquet cache and HF fetch failed)"
                 )
             total_reviews = len(reviews_df)
+            review_window = compute_review_window(reviews_df)
+
+            # Per-review need-bearing filter (keeps polite 4★ wants; drops empty praise)
+            need_df, need_stats = select_need_bearing(reviews_df)
+            if need_df.empty:
+                raise RuntimeError(
+                    f"No need-bearing reviews in {app['package_name']} "
+                    f"({need_stats['reviews_total']} total)"
+                )
 
             cb("embedding", 40)
 
-            # --- embed + cluster (CPU-bound → thread) ---
+            # --- embed + cluster need-bearing only (CPU-bound → thread) ---
             roadmap_texts = (
                 []
                 if roadmap_items is None or roadmap_items.empty
@@ -153,7 +170,9 @@ class AnalysisPipeline:
 
             def _embed_work() -> tuple[EmbeddingEngine, dict[str, Any], Any]:
                 engine = EmbeddingEngine(self.settings)
-                clustered = engine.embed_and_cluster(reviews_df, roadmap_texts=roadmap_texts)
+                clustered = engine.embed_and_cluster(
+                    need_df, roadmap_texts=roadmap_texts
+                )
                 road_emb = engine.embed_roadmap_items(
                     roadmap_items if roadmap_items is not None else pd.DataFrame()
                 )
@@ -184,6 +203,7 @@ class AnalysisPipeline:
                 roadmap_embeddings=road_emb,
                 roadmap_source=roadmap_source,
                 total_reviews=total_reviews,
+                review_window=review_window,
             )
 
             cb("extracting", 80)
@@ -210,8 +230,11 @@ class AnalysisPipeline:
             written = self.store.write_gaps_with_evidence(job_id, gap_rows)
 
             elapsed = round(time.perf_counter() - t0, 3)
+            window_meta = review_window.to_iso()
             stats = {
                 "total_reviews": total_reviews,
+                "reviews_total": need_stats["reviews_total"],
+                "reviews_need_bearing": need_stats["reviews_need_bearing"],
                 "clusters": n_clusters,
                 "roadmap_items": n_roadmap,
                 "llm_used": llm_used,
@@ -219,6 +242,8 @@ class AnalysisPipeline:
                 "elapsed_s": elapsed,
                 "degraded": sorted(set(degraded)),
                 "match_threshold": threshold,
+                "review_provenance": review_provenance,
+                **window_meta,
             }
             summary = _summary_text(roadmap_source, written)
 
@@ -236,6 +261,7 @@ class AnalysisPipeline:
                         "web_urls": resolved.web_urls,
                         "item_count": n_roadmap,
                         "notes": resolved.notes,
+                        **window_meta,
                     },
                 },
             )

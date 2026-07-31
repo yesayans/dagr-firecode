@@ -209,6 +209,17 @@ def get_job(job_id: str) -> dict[str, Any]:
             "embedding_backend": stats.get("embedding_backend") or "",
             "elapsed_s": float(stats.get("elapsed_s") or 0.0),
             "degraded": list(stats.get("degraded") or []),
+            "review_provenance": stats.get("review_provenance") or "parquet_cache",
+            "reviews_total": int(
+                stats.get("reviews_total")
+                if stats.get("reviews_total") is not None
+                else stats.get("total_reviews")
+                or 0
+            ),
+            "reviews_need_bearing": int(stats.get("reviews_need_bearing") or 0),
+            "review_window_start": stats.get("review_window_start"),
+            "review_window_end": stats.get("review_window_end"),
+            "reference_date": stats.get("reference_date"),
         },
         "gaps": job.get("gaps") or [],
         "created_at": job.get("created_at"),

@@ -1,4 +1,9 @@
-"""Seed offline review parquet caches for demo apps (no HuggingFace needed)."""
+"""
+Seed TEST-ONLY synthetic review fixtures under api/tests/fixtures/.
+
+NEVER writes to data/reviews/ — that path is reserved for real HuggingFace
+(or otherwise genuine) review snapshots used in demos.
+"""
 
 from __future__ import annotations
 
@@ -7,6 +12,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+FIXTURE_DIR = ROOT / "api" / "tests" / "fixtures"
 sys.path.insert(0, str(ROOT / "api"))
 
 import pandas as pd  # noqa: E402
@@ -17,8 +23,9 @@ def _rid(pkg: str, text: str, rating: float, date: str) -> str:
     return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
 
 
-def antennapod_reviews() -> list[dict]:
-    pkg = "de.danoeh.antennapod"
+def synthetic_rows() -> list[dict]:
+    """Hand-authored themes for offline unit/e2e tests only."""
+    pkg = "com.dagr.synthetic"
     themes = {
         "sleep": [
             (
@@ -101,7 +108,7 @@ def antennapod_reviews() -> list[dict]:
                 "2024-07-09",
             ),
             (
-                "Phone call interrupts AntennaPod and it never resumes on bluetooth afterward correctly.",
+                "Phone call interrupts playback and it never resumes on bluetooth afterward correctly.",
                 1,
                 "2024-09-19",
             ),
@@ -155,7 +162,7 @@ def antennapod_reviews() -> list[dict]:
                 "2024-05-11",
             ),
             (
-                "Cannot cast to my TV reliably, AntennaPod loses the Chromecast session every few minutes.",
+                "Cannot cast to my TV reliably, the cast session drops every few minutes during long shows.",
                 1,
                 "2024-07-17",
             ),
@@ -192,7 +199,7 @@ def antennapod_reviews() -> list[dict]:
                 "2024-06-06",
             ),
             (
-                "Migrating from Google Podcasts via OPML was painful, many feeds never refreshed afterward.",
+                "Migrating feeds via OPML was painful, many feeds never refreshed afterward correctly.",
                 2,
                 "2024-08-19",
             ),
@@ -260,19 +267,23 @@ def antennapod_reviews() -> list[dict]:
 
 
 def main() -> None:
-    out_dir = ROOT / "data" / "reviews"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    rows = antennapod_reviews()
-    path = out_dir / "de.danoeh.antennapod.parquet"
-    pd.DataFrame(rows).to_parquet(path, index=False)
-    print({"wrote": str(path), "rows": len(rows)})
+    FIXTURE_DIR.mkdir(parents=True, exist_ok=True)
+    # Guardrail: never touch the real review cache directory
+    real_cache = ROOT / "data" / "reviews"
+    out = FIXTURE_DIR / "synthetic_reviews.parquet"
+    assert real_cache.resolve() not in out.resolve().parents or True
+    if out.resolve().is_relative_to(real_cache.resolve()):
+        raise SystemExit("Refusing to write fixtures into data/reviews/")
 
-    # Tiny fixture copy for tests
-    fix = ROOT / "api" / "tests" / "fixtures"
-    fix.mkdir(parents=True, exist_ok=True)
-    # Use first ~42 rows (7 themes * 6)
-    pd.DataFrame(rows).to_parquet(fix / "synthetic_reviews.parquet", index=False)
-    print({"fixture": str(fix / "synthetic_reviews.parquet"), "rows": len(rows)})
+    rows = synthetic_rows()
+    pd.DataFrame(rows).to_parquet(out, index=False)
+    print(
+        {
+            "wrote": str(out),
+            "rows": len(rows),
+            "note": "TEST FIXTURE ONLY — never copy into data/reviews/",
+        }
+    )
 
 
 if __name__ == "__main__":

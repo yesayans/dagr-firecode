@@ -1,0 +1,7 @@
+{
+  "provenance": "hf",
+  "package_name": "de.danoeh.antennapod",
+  "rows": 263,
+  "dataset": "sealuzh/app_reviews",
+  "note": "Real HuggingFace snapshot (2016 corpus); not synthetic"
+}

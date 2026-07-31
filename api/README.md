@@ -18,12 +18,16 @@ copy .env.example .env
 # Edit .env if you have OPENROUTER_API_KEY / GITHUB_TOKEN / Supabase keys
 ```
 
-Seed offline review cache (required for AntennaPod demo without HuggingFace):
+Seed **test-only** synthetic fixtures (never writes to `data/reviews/`):
 
 ```powershell
 cd C:\Users\Grigor\Desktop\Hackathon
-.\api\.venv\Scripts\python.exe scripts\seed_synthetic_reviews.py
+.\api\.venv\Scripts\python.exe scripts\seed_test_fixtures.py
 ```
+
+Real demo review caches live under `data/reviews/{package}.parquet` and must come from
+HuggingFace (`ReviewScraper.fetch_reviews(..., force_refresh=True)`). Job `stats.review_provenance`
+is `hf` | `parquet_cache` | `fixture` — never attribute `fixture` quotes to real users.
 
 ## Run the server
 

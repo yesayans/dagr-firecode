@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import re
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import urlparse
 
 import pandas as pd
@@ -17,6 +19,15 @@ from bs4 import BeautifulSoup
 from src.config import Settings, get_settings
 
 logger = logging.getLogger(__name__)
+
+ReviewProvenance = Literal["hf", "parquet_cache", "fixture"]
+
+
+@dataclass
+class ReviewFetchResult:
+    df: pd.DataFrame
+    degraded: list[str]
+    provenance: ReviewProvenance
 
 UA = "dagr/1.0 (+https://github.com/silent-stakeholder)"
 
@@ -75,41 +86,88 @@ class ReviewScraper:
         safe = package_name.replace("/", "_")
         return self.cache_dir / f"{safe}.parquet"
 
+    def meta_path(self, package_name: str) -> Path:
+        return self.cache_path(package_name).with_suffix(".meta.json")
+
     def fetch_reviews(
         self,
         package_name: str,
         max_reviews: int | None = None,
         *,
         force_refresh: bool = False,
-    ) -> tuple[pd.DataFrame, list[str]]:
+    ) -> ReviewFetchResult:
         """
-        Return (DataFrame[review_id, review_text, rating, created_at], degraded).
-        Cache-first; never fails the demo if parquet exists.
+        Cache-first load of reviews. Provenance is always recorded so synthetic
+        fixtures can never silently masquerade as real demo data.
         """
         max_reviews = max_reviews or self.settings.max_reviews
         degraded: list[str] = []
         path = self.cache_path(package_name)
 
         if path.exists() and not force_refresh:
-            df = pd.read_parquet(path)
-            df = self._finalize(df, max_reviews)
-            return df, degraded
+            df = self._finalize(pd.read_parquet(path), max_reviews)
+            provenance = self._read_provenance(package_name, path)
+            if provenance == "fixture":
+                degraded.append(
+                    "review provenance=fixture (test data — not for demo attribution)"
+                )
+            return ReviewFetchResult(df=df, degraded=degraded, provenance=provenance)
 
         try:
             df = self._load_from_hf(package_name, max_reviews)
             if df.empty:
                 degraded.append(f"no reviews in HF for {package_name}")
             else:
-                df.to_parquet(path, index=False)
-            return df, degraded
+                self._write_cache(package_name, df, provenance="hf")
+            return ReviewFetchResult(df=df, degraded=degraded, provenance="hf")
         except Exception as e:
             if path.exists():
                 degraded.append(f"HF fetch failed ({e}); using parquet cache")
-                df = pd.read_parquet(path)
-                return self._finalize(df, max_reviews), degraded
-            # Last resort: empty frame — caller may use fixture
+                df = self._finalize(pd.read_parquet(path), max_reviews)
+                provenance = self._read_provenance(package_name, path)
+                return ReviewFetchResult(
+                    df=df, degraded=degraded, provenance=provenance
+                )
             degraded.append(f"HF fetch failed and no cache: {e}")
-            return self._empty(), degraded
+            return ReviewFetchResult(
+                df=self._empty(), degraded=degraded, provenance="parquet_cache"
+            )
+
+    def _write_cache(
+        self, package_name: str, df: pd.DataFrame, *, provenance: ReviewProvenance
+    ) -> None:
+        path = self.cache_path(package_name)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_parquet(path, index=False)
+        meta = {
+            "provenance": provenance,
+            "package_name": package_name,
+            "rows": int(len(df)),
+            "written_at": datetime.now(timezone.utc).isoformat(),
+            "dataset": self.settings.hf_dataset if provenance == "hf" else None,
+        }
+        self.meta_path(package_name).write_text(
+            json.dumps(meta, indent=2), encoding="utf-8"
+        )
+
+    def _read_provenance(
+        self, package_name: str, path: Path
+    ) -> ReviewProvenance:
+        # Paths under tests/fixtures are always fixtures
+        parts = {p.lower() for p in path.parts}
+        if "fixtures" in parts or "tests" in parts:
+            return "fixture"
+        meta_p = self.meta_path(package_name)
+        if meta_p.exists():
+            try:
+                meta = json.loads(meta_p.read_text(encoding="utf-8"))
+                prov = meta.get("provenance")
+                if prov in ("hf", "parquet_cache", "fixture"):
+                    return prov  # type: ignore[return-value]
+            except Exception:
+                pass
+        # Legacy cache without sidecar — treat as real parquet cache, never fixture
+        return "parquet_cache"
 
     def _empty(self) -> pd.DataFrame:
         return pd.DataFrame(
@@ -611,14 +669,28 @@ def main() -> None:
     pkg = "de.danoeh.antennapod"
     path = scraper.cache_path(pkg)
     if not path.exists():
-        print({"cache_missing": str(path), "hint": "run scripts/seed_synthetic_reviews.py"})
+        print(
+            {
+                "cache_missing": str(path),
+                "hint": "fetch via ReviewScraper.fetch_reviews(..., force_refresh=True)",
+            }
+        )
     else:
-        df, deg = scraper.fetch_reviews(pkg, max_reviews=20)
-        print({"rows": len(df), "degraded": deg, "sample": df.head(2).to_dict("records")})
+        result = scraper.fetch_reviews(pkg, max_reviews=20)
+        print(
+            {
+                "rows": len(result.df),
+                "provenance": result.provenance,
+                "degraded": result.degraded,
+                "sample": result.df.head(2).to_dict("records"),
+            }
+        )
     gh = GitHubScraper(settings)
     print({"github_token": settings.github_token_present})
     if settings.github_token_present:
-        issues, deg = gh.fetch_issues_and_milestones("AntennaPod/AntennaPod", max_issues=5)
+        issues, deg = gh.fetch_issues_and_milestones(
+            "AntennaPod/AntennaPod", max_issues=5
+        )
         print({"issues": len(issues), "degraded": deg})
     else:
         print({"issues": 0, "degraded": ["no GITHUB_TOKEN"]})
