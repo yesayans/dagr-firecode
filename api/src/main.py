@@ -63,6 +63,8 @@ def _health_payload() -> dict[str, Any]:
         "store": store.name,
         "llm_enabled": settings.llm_enabled,
         "llm_model": settings.openrouter_model,
+        "llm_base_url": settings.llm_base_url,
+        "roadmap_matching_enabled": settings.roadmap_matching_enabled,
         "github_token": settings.github_token_present,
         "github_token_source": settings.github_token_source,
         "embedding_backend": active_backend,

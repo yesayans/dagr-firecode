@@ -59,6 +59,11 @@ class Settings(BaseSettings):
 
     openrouter_api_key: str | None = Field(default=None, alias="OPENROUTER_API_KEY")
     openrouter_model: str = Field(default="openai/gpt-4o-mini", alias="OPENROUTER_MODEL")
+    # OpenAI-compatible chat completions endpoint (OpenRouter, Autorouter, etc.)
+    llm_base_url: str = Field(
+        default="https://openrouter.ai/api/v1/chat/completions",
+        alias="LLM_BASE_URL",
+    )
 
     # Explicit env token only — never write git-credential secrets into .env
     github_token: str | None = Field(default=None, alias="GITHUB_TOKEN")

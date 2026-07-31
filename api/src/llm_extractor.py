@@ -16,7 +16,7 @@ from src.need_filter import is_need_bearing
 
 logger = logging.getLogger(__name__)
 
-OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+DEFAULT_LLM_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 VERDICTS_ROADMAP = {"IGNORED", "UNDER-PRIORITIZED", "MISUNDERSTOOD"}
 VERDICTS_NONE = {"UNVERIFIED"}
@@ -110,9 +110,18 @@ class LatentNeedExtractor:
             for rid in provided_ids
             if rid in reviews_by_id
         ]
-        allowed = VERDICTS_NONE if roadmap_source == "none" else VERDICTS_ROADMAP
+        # When lexical/semantic roadmap matching is disabled, never ask the LLM
+        # for IGNORED / UNDER-PRIORITIZED / MISUNDERSTOOD — those require a
+        # defensible match we do not currently have.
+        matching_on = bool(self.settings.roadmap_matching_enabled)
+        effective_mode = (
+            "none"
+            if (not matching_on or roadmap_source == "none")
+            else roadmap_source
+        )
+        allowed = VERDICTS_NONE if effective_mode == "none" else VERDICTS_ROADMAP
         matched = None
-        if candidate.matched_item:
+        if matching_on and candidate.matched_item:
             matched = {
                 "title": (candidate.matched_item.get("text") or "")[:200],
                 "state": candidate.matched_item.get("state"),
@@ -122,8 +131,10 @@ class LatentNeedExtractor:
         prompt = _build_prompt(
             sample=sample,
             matched=matched,
-            preliminary_verdict=candidate.verdict,
-            roadmap_mode=roadmap_source,
+            preliminary_verdict=(
+                "UNVERIFIED" if effective_mode == "none" else candidate.verdict
+            ),
+            roadmap_mode=effective_mode,
             keywords=candidate.keywords,
             allowed=sorted(allowed),
         )
@@ -161,7 +172,7 @@ class LatentNeedExtractor:
             cited = _fallback_citations(candidate, reviews_by_id, provided_ids)
 
         verdict = parsed.verdict.strip().upper()
-        if roadmap_source == "none":
+        if effective_mode == "none":
             verdict = "UNVERIFIED"
         elif verdict not in allowed:
             verdict = candidate.verdict
@@ -173,10 +184,15 @@ class LatentNeedExtractor:
             f"0.6 * deterministic ({det}) + 0.4 * llm ({llm_conf}). "
             f"{parsed.confidence_justification}"
         )
-        if roadmap_source == "none":
+        if effective_mode == "none":
+            reason = (
+                "roadmap matching disabled (null model); "
+                if not matching_on
+                else ""
+            )
             rationale = (
                 f"0.6 * deterministic ({det}) + 0.4 * llm ({llm_conf}); "
-                f"UNVERIFIED — justification uses user-side evidence only. "
+                f"UNVERIFIED — {reason}justification uses user-side evidence only. "
                 f"{parsed.confidence_justification}"
             )
 
@@ -217,7 +233,12 @@ class LatentNeedExtractor:
         theme = ", ".join(keywords[:6]) if keywords else "(no keywords)"
 
         det = float(candidate.metrics["deterministic_confidence"])
-        verdict = "UNVERIFIED" if roadmap_source == "none" else candidate.verdict
+        matching_on = bool(self.settings.roadmap_matching_enabled)
+        verdict = (
+            "UNVERIFIED"
+            if (not matching_on or roadmap_source == "none")
+            else candidate.verdict
+        )
         if roadmap_source == "none":
             rationale = (
                 f"deterministic only ({det}); no LLM — quoting representative "
@@ -262,16 +283,16 @@ class LatentNeedExtractor:
         )
 
     async def _call_openrouter(self, prompt: str) -> tuple[str | None, str | None]:
+        url = (self.settings.llm_base_url or DEFAULT_LLM_URL).strip()
         headers = {
             "Authorization": f"Bearer {self.settings.openrouter_api_key}",
             "Content-Type": "application/json",
             "HTTP-Referer": "http://localhost:8000",
             "X-Title": "dagr",
         }
-        body = {
+        body: dict[str, Any] = {
             "model": self.settings.openrouter_model,
             "temperature": 0,
-            "response_format": {"type": "json_object"},
             "messages": [
                 {
                     "role": "system",
@@ -284,11 +305,14 @@ class LatentNeedExtractor:
                 {"role": "user", "content": prompt},
             ],
         }
+        # OpenRouter supports response_format; some Autorouter/Gemini proxies do not.
+        if "openrouter.ai" in url:
+            body["response_format"] = {"type": "json_object"}
         try:
-            async with httpx.AsyncClient(timeout=45.0) as client:
-                r = await client.post(OPENROUTER_URL, headers=headers, json=body)
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                r = await client.post(url, headers=headers, json=body)
                 if r.status_code != 200:
-                    return None, f"HTTP {r.status_code}: {r.text[:200]}"
+                    return None, f"HTTP {r.status_code}: {r.text[:300]}"
                 data = r.json()
                 content = data["choices"][0]["message"]["content"]
                 return content, None
