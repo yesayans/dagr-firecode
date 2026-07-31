@@ -9,6 +9,7 @@ import { GapCard } from "@/components/GapCard";
 import { RoadmapSourceBadge } from "@/components/RoadmapSourceBadge";
 import { StagePipeline } from "@/components/StagePipeline";
 import { UnverifiedNotice } from "@/components/UnverifiedNotice";
+import { formatReviewWindow } from "@/lib/dates";
 
 const POLL_MS = 1500;
 
@@ -99,6 +100,11 @@ export default function JobPage() {
     job.status === "queued" || job.status === "running";
   const failed = job.status === "failed";
   const completed = job.status === "completed";
+  const reviewWindow = formatReviewWindow(
+    job.stats.review_window_start,
+    job.stats.review_window_end,
+  );
+  const degraded = Array.isArray(job.stats.degraded) ? job.stats.degraded : [];
 
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-10 sm:px-10 sm:py-14">
@@ -123,6 +129,16 @@ export default function JobPage() {
             </h1>
             <p className="mt-1 font-mono text-sm text-zinc-500">
               {job.app.package_name}
+            </p>
+            <p className="mt-3 font-mono text-sm text-zinc-400">
+              {reviewWindow
+                ? `reviews: ${reviewWindow}`
+                : "reviews: window unknown"}
+              {" · "}
+              roadmap: live
+              {job.stats.review_provenance
+                ? ` · source ${job.stats.review_provenance}`
+                : ""}
             </p>
           </div>
           <RoadmapSourceBadge source={job.roadmap_source} />
@@ -186,9 +202,19 @@ export default function JobPage() {
             ))}
           </dl>
 
-          {job.stats.degraded.length > 0 && (
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-              Degraded: {job.stats.degraded.join(" · ")}
+          {degraded.length > 0 && (
+            <div
+              role="status"
+              className="rounded-lg border-2 border-amber-400/50 bg-amber-500/15 px-5 py-4"
+            >
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-amber-200">
+                Degraded run — not full fidelity
+              </p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-50/90">
+                {degraded.map((note) => (
+                  <li key={note}>{note}</li>
+                ))}
+              </ul>
             </div>
           )}
 
@@ -202,7 +228,9 @@ export default function JobPage() {
             </h2>
             <p className="text-sm text-zinc-500">
               {job.gaps.length} gaps · embedding {job.stats.embedding_backend}
-              {job.stats.llm_used ? " · LLM extract on" : " · deterministic extract"}
+              {job.stats.llm_used
+                ? " · LLM extract on"
+                : " · deterministic extract (no LLM)"}
             </p>
           </div>
 

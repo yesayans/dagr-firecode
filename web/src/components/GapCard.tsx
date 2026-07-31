@@ -4,6 +4,10 @@ import { useState } from "react";
 import type { Gap, RoadmapSource, Verdict } from "@/lib/types";
 import { ConfidenceBreakdown } from "./ConfidenceBreakdown";
 import { EvidenceTrace } from "./EvidenceTrace";
+import {
+  hasRetrospectiveFields,
+  RetrospectiveValidation,
+} from "./RetrospectiveValidation";
 
 const VERDICT_STYLES: Record<Verdict, string> = {
   IGNORED: "bg-red-500/15 text-red-300 ring-red-500/40",
@@ -25,8 +29,12 @@ export function GapCard({
   const isNone = roadmapSource === "none";
   const showMatch =
     !isNone &&
-    (gap.metrics.matched_item_title !== null ||
-      gap.metrics.best_similarity !== null);
+    (gap.metrics.matched_item_title != null ||
+      gap.metrics.best_similarity != null);
+  const showRetrospective = hasRetrospectiveFields(gap.metrics);
+  const keywords = Array.isArray(gap.metrics.keywords)
+    ? gap.metrics.keywords
+    : [];
 
   return (
     <article className="overflow-hidden rounded-xl border border-white/10 bg-zinc-900/70 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]">
@@ -42,7 +50,12 @@ export function GapCard({
             >
               {gap.verdict}
             </span>
-            {gap.metrics.keywords.slice(0, 4).map((kw) => (
+            {showRetrospective && gap.metrics.validated_by_later_roadmap && (
+              <span className="inline-flex rounded-md bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-300 ring-1 ring-inset ring-emerald-500/40">
+                Validated in hindsight
+              </span>
+            )}
+            {keywords.slice(0, 4).map((kw) => (
               <span
                 key={kw}
                 className="rounded-md bg-white/5 px-2 py-1 text-xs text-zinc-400"
@@ -62,26 +75,33 @@ export function GapCard({
           {showMatch && (
             <div className="rounded-md border border-white/8 bg-black/25 px-4 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-                Matched roadmap item
+                {gap.metrics.matched_item_title
+                  ? "Matched roadmap item"
+                  : "Roadmap comparison"}
               </p>
               <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                {gap.metrics.matched_item_url ? (
+                {gap.metrics.matched_item_title && gap.metrics.matched_item_url ? (
                   <a
                     href={gap.metrics.matched_item_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm font-medium text-teal-300 hover:text-teal-200"
                   >
-                    {gap.metrics.matched_item_title ?? "Open item"} ↗
+                    {gap.metrics.matched_item_title} ↗
                   </a>
-                ) : (
+                ) : gap.metrics.matched_item_title ? (
                   <span className="text-sm text-zinc-200">
-                    {gap.metrics.matched_item_title ?? "Unmatched"}
+                    {gap.metrics.matched_item_title}
+                  </span>
+                ) : (
+                  <span className="text-sm text-zinc-300">
+                    No contemporaneous roadmap match
                   </span>
                 )}
-                {gap.metrics.best_similarity !== null && (
+                {gap.metrics.best_similarity != null && (
                   <span className="font-mono text-xs text-zinc-500">
-                    similarity {gap.metrics.best_similarity.toFixed(2)}
+                    nearest similarity{" "}
+                    {Number(gap.metrics.best_similarity).toFixed(2)}
                     {gap.metrics.matched_item_state
                       ? ` · ${gap.metrics.matched_item_state}`
                       : ""}
@@ -89,6 +109,10 @@ export function GapCard({
                 )}
               </div>
             </div>
+          )}
+
+          {showRetrospective && (
+            <RetrospectiveValidation metrics={gap.metrics} />
           )}
         </div>
 
@@ -100,6 +124,11 @@ export function GapCard({
             {Math.round(gap.confidence)}
             <span className="text-2xl text-zinc-500">%</span>
           </p>
+          {gap.metrics.llm_confidence == null && (
+            <p className="mt-2 font-mono text-[11px] uppercase tracking-wide text-zinc-500">
+              deterministic
+            </p>
+          )}
         </div>
       </div>
 

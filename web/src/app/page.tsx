@@ -304,7 +304,7 @@ export default function HomePage() {
         {!selected && !resolving && !resolveError && (
           <div className="rounded-xl border border-dashed border-white/12 bg-white/[0.02] px-5 py-8 text-center text-sm text-zinc-500">
             Select an app to resolve its roadmap source, then run analysis.
-            Demo fixtures cover{" "}
+            Catalog covers{" "}
             <span className="text-zinc-300">github</span>,{" "}
             <span className="text-zinc-300">web</span>,{" "}
             <span className="text-zinc-300">hybrid</span>, and{" "}

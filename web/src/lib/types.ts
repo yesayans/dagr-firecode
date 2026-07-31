@@ -40,6 +40,14 @@ export interface EvidenceItem {
   payload: Record<string, unknown>;
 }
 
+export interface LaterAddressedBy {
+  title: string;
+  url: string | null;
+  state: string | null;
+  date: string | null;
+  similarity: number;
+}
+
 export interface GapMetrics {
   cluster_size: number;
   total_reviews: number;
@@ -69,6 +77,11 @@ export interface GapMetrics {
   deterministic_confidence: number;
   llm_confidence: number | null;
   keywords: string[];
+  review_window_start: string;
+  review_window_end: string;
+  reference_date: string;
+  later_addressed_by: LaterAddressedBy | null;
+  validated_by_later_roadmap: boolean;
 }
 
 export interface Gap {
@@ -101,6 +114,10 @@ export interface Job {
     embedding_backend: string;
     elapsed_s: number;
     degraded: string[];
+    review_provenance: "hf" | "parquet_cache" | "fixture";
+    review_window_start: string;
+    review_window_end: string;
+    reference_date: string;
   };
   gaps: Gap[];
   created_at: string;

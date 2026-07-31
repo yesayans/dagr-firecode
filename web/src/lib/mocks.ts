@@ -5,10 +5,14 @@ import type {
   Gap,
   GapMetrics,
   Job,
+  LaterAddressedBy,
   RoadmapSource,
   Verdict,
 } from "./types";
 import { COMPONENT_KEYS } from "./types";
+
+const REVIEW_WINDOW_START = "2016-04-01T00:00:00Z";
+const REVIEW_WINDOW_END = "2016-09-30T23:59:59Z";
 
 const WEIGHTS_ROADMAP = {
   volume: 0.3,
@@ -45,6 +49,10 @@ function buildMetrics(input: {
   matched_item_age_days: number | null;
   llm_confidence: number | null;
   keywords: string[];
+  validated_by_later_roadmap?: boolean;
+  later_addressed_by?: LaterAddressedBy | null;
+  review_window_start?: string;
+  review_window_end?: string;
 }): GapMetrics {
   const weights = input.mode === "none" ? WEIGHTS_NONE : WEIGHTS_ROADMAP;
   const volume =
@@ -71,6 +79,15 @@ function buildMetrics(input: {
       ),
   );
 
+  const review_window_start =
+    input.review_window_start ?? REVIEW_WINDOW_START;
+  const review_window_end = input.review_window_end ?? REVIEW_WINDOW_END;
+  const validated = input.validated_by_later_roadmap ?? false;
+  const later =
+    input.later_addressed_by !== undefined
+      ? input.later_addressed_by
+      : null;
+
   return {
     cluster_size: input.cluster_size,
     total_reviews: input.total_reviews,
@@ -88,6 +105,11 @@ function buildMetrics(input: {
     deterministic_confidence: deterministic,
     llm_confidence: input.llm_confidence,
     keywords: input.keywords,
+    review_window_start,
+    review_window_end,
+    reference_date: review_window_end,
+    later_addressed_by: later,
+    validated_by_later_roadmap: validated,
   };
 }
 
@@ -206,11 +228,13 @@ function makeGithubGaps(): Gap[] {
     matched_url: string;
     matched_state: string;
     age_days: number;
-    llm: number;
+    llm: number | null;
     keywords: string[];
     reasoning: string;
     reviews: Array<{ id: string; stars: number; text: string }>;
     extra: EvidenceItem[];
+    validated_by_later_roadmap: boolean;
+    later_addressed_by: LaterAddressedBy | null;
   }> = [
     {
       rank: 1,
@@ -253,6 +277,15 @@ function makeGithubGaps(): Gap[] {
           payload: { state: "open", number: 6120 },
         },
       ],
+      // Surfaced from 2016 reviews with no contemporaneous match; team shipped it in 2019.
+      validated_by_later_roadmap: true,
+      later_addressed_by: {
+        title: "Keep sleep timer across episode changes",
+        url: "https://github.com/AntennaPod/AntennaPod/issues/3142",
+        state: "closed",
+        date: "2019-03-14T00:00:00Z",
+        similarity: 0.78,
+      },
     },
     {
       rank: 2,
@@ -303,6 +336,8 @@ function makeGithubGaps(): Gap[] {
           payload: { state: "closed" },
         },
       ],
+      validated_by_later_roadmap: false,
+      later_addressed_by: null,
     },
     {
       rank: 3,
@@ -345,6 +380,8 @@ function makeGithubGaps(): Gap[] {
           payload: { state: "closed", number: 5502 },
         },
       ],
+      validated_by_later_roadmap: false,
+      later_addressed_by: null,
     },
     {
       rank: 4,
@@ -361,7 +398,7 @@ function makeGithubGaps(): Gap[] {
       matched_url: "https://github.com/AntennaPod/AntennaPod/issues/6011",
       matched_state: "open",
       age_days: 88,
-      llm: 76,
+      llm: null,
       keywords: ["transcript", "search", "chapters"],
       reasoning:
         "Roadmap search work targets titles/descriptions; transcript search demand is unmet.",
@@ -387,6 +424,9 @@ function makeGithubGaps(): Gap[] {
           payload: { state: "open", number: 6011 },
         },
       ],
+      // Never addressed after the 2016 review window — decade of standing.
+      validated_by_later_roadmap: false,
+      later_addressed_by: null,
     },
   ];
 
@@ -406,6 +446,8 @@ function makeGithubGaps(): Gap[] {
       matched_item_age_days: s.age_days,
       llm_confidence: s.llm,
       keywords: s.keywords,
+      validated_by_later_roadmap: s.validated_by_later_roadmap,
+      later_addressed_by: s.later_addressed_by,
     });
     const { confidence, rationale } = finalConfidence(metrics);
     return {
@@ -954,6 +996,7 @@ function completedJob(
   gaps: Gap[],
   summary: string,
   roadmapItems: number,
+  opts?: { llm_used?: boolean; degraded?: string[] },
 ): Job {
   return {
     id,
@@ -968,10 +1011,14 @@ function completedJob(
       total_reviews: 2000,
       clusters: 48,
       roadmap_items: roadmapItems,
-      llm_used: true,
+      llm_used: opts?.llm_used ?? true,
       embedding_backend: "minilm",
       elapsed_s: 42.6,
-      degraded: [],
+      degraded: opts?.degraded ?? [],
+      review_provenance: "fixture",
+      review_window_start: REVIEW_WINDOW_START,
+      review_window_end: REVIEW_WINDOW_END,
+      reference_date: REVIEW_WINDOW_END,
     },
     gaps,
     created_at: "2026-07-31T10:00:00Z",
