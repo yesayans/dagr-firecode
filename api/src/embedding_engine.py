@@ -12,6 +12,7 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import TruncatedSVD
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import silhouette_score
+from sklearn.pipeline import FeatureUnion
 from sklearn.preprocessing import normalize
 
 from src.config import Settings, get_settings
@@ -27,19 +28,66 @@ class EmbeddingBackend(Protocol):
     def transform(self, texts: list[str]) -> np.ndarray: ...
 
 
+def build_tfidf_vectorizer(mode: str = "union") -> Any:
+    """
+    Lexical vectorizer for review↔roadmap matching.
+    mode: 'union' (word 1–2 + char_wb 3–5), 'char_wb', or 'word'.
+    """
+    if mode == "word":
+        return TfidfVectorizer(
+            analyzer="word",
+            ngram_range=(1, 2),
+            stop_words="english",
+            max_features=20000,
+            sublinear_tf=True,
+            min_df=1,
+        )
+    if mode == "char_wb":
+        return TfidfVectorizer(
+            analyzer="char_wb",
+            ngram_range=(3, 5),
+            max_features=40000,
+            sublinear_tf=True,
+            min_df=1,
+        )
+    # Default: union — morphology from chars + topical tokens from words
+    return FeatureUnion(
+        [
+            (
+                "word",
+                TfidfVectorizer(
+                    analyzer="word",
+                    ngram_range=(1, 2),
+                    stop_words="english",
+                    max_features=12000,
+                    sublinear_tf=True,
+                    min_df=1,
+                ),
+            ),
+            (
+                "char",
+                TfidfVectorizer(
+                    analyzer="char_wb",
+                    ngram_range=(3, 5),
+                    max_features=30000,
+                    sublinear_tf=True,
+                    min_df=1,
+                ),
+            ),
+        ]
+    )
+
+
 class TfidfSvdBackend:
-    """TF-IDF + TruncatedSVD → 256-d L2-normalised vectors. Offline, no downloads."""
+    """TF-IDF (default char_wb 3–5) + TruncatedSVD → 256-d L2-normalised vectors."""
 
     name = "tfidf"
 
-    def __init__(self, n_components: int = 256) -> None:
+    def __init__(self, n_components: int = 256, vectorizer_mode: str = "char_wb") -> None:
+        # char_wb alone beats word∪char_wb on AntennaPod review↔issue probes
         self.n_components = n_components
-        self.vectorizer = TfidfVectorizer(
-            max_features=20000,
-            ngram_range=(1, 2),
-            min_df=1,
-            stop_words="english",
-        )
+        self.vectorizer_mode = vectorizer_mode
+        self.vectorizer = build_tfidf_vectorizer(vectorizer_mode)
         self.svd: TruncatedSVD | None = None
         self._fitted = False
 

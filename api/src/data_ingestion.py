@@ -31,6 +31,79 @@ class ReviewFetchResult:
 
 UA = "dagr/1.0 (+https://github.com/silent-stakeholder)"
 
+# Named issue-template sections that are noise for embedding (drop header + body)
+_BOILERPLATE_HEADERS = frozenset(
+    {
+        "checklist",
+        "environment",
+        "app version",
+        "device model",
+        "android version",
+        "antennapod version",
+        "how to reproduce",
+        "steps to reproduce",
+        # "Additional context" often holds the real write-up — keep it
+    }
+)
+_HTML_COMMENT = re.compile(r"<!--.*?-->", re.S)
+_CHECKBOX_LINE = re.compile(r"(?m)^\s*[-*]\s*\[[ xX]\]\s*.*$")
+_SEARCH_FN_LINE = re.compile(
+    r"(?im)^\s*[-*]?\s*\[[ xX]?\]?\s*I have used the search function.*$"
+)
+_DOCS_LINE = re.compile(
+    r"(?im)^\s*[-*]?\s*\[[ xX]?\]?\s*I have read (the )?(relevant )?(documentation|wiki).*$"
+)
+_WS = re.compile(r"\s+")
+_SECTION_SPLIT = re.compile(r"(?m)^(###\s+.+)$")
+# Release milestones named like "1.5.2" / "v3.0" carry no thematic signal for matching
+_VERSION_MILESTONE_TITLE = re.compile(
+    r"^v?\d+(?:\.\d+)+(?:[-._]?[a-z0-9]+)?$", re.I
+)
+
+
+def is_version_milestone_title(title: str) -> bool:
+    return bool(_VERSION_MILESTONE_TITLE.match((title or "").strip()))
+
+
+def strip_github_boilerplate(text: str) -> str:
+    """Remove checklist / environment template noise that dilutes every issue vector."""
+    if not text:
+        return ""
+    out = _HTML_COMMENT.sub(" ", text)
+    # Split on ### headers so Environment/Checklist cannot swallow trailing prose
+    parts = _SECTION_SPLIT.split(out)
+    kept: list[str] = [parts[0]]
+    i = 1
+    while i < len(parts):
+        header = parts[i]
+        body = parts[i + 1] if i + 1 < len(parts) else ""
+        name = re.sub(r"^###\s*", "", header).strip().lower()
+        # Match on startswith so "Checklist (please complete)" still drops
+        drop = any(name == h or name.startswith(h) for h in _BOILERPLATE_HEADERS)
+        if not drop:
+            kept.append(body)
+        i += 2
+    out = "\n".join(kept)
+    out = _SEARCH_FN_LINE.sub(" ", out)
+    out = _DOCS_LINE.sub(" ", out)
+    out = _CHECKBOX_LINE.sub(" ", out)
+    return _WS.sub(" ", out).strip()
+
+
+def compose_issue_text(title: str, body: str = "", *, title_weight: int = 3) -> str:
+    """Title-heavy embed text: title repeated, then cleaned body."""
+    title = (title or "").strip()
+    body_clean = strip_github_boilerplate(body or "")
+    if not title and not body_clean:
+        return ""
+    if not title:
+        return body_clean
+    weighted = ". ".join([title] * max(1, title_weight))
+    if body_clean:
+        return f"{weighted}. {body_clean}"
+    return weighted
+
+
 WELL_KNOWN_CHANGELOG_HOSTS = frozenset(
     {
         "github.com",
@@ -343,16 +416,18 @@ class GitHubScraper:
             now = datetime.now(timezone.utc)
             for m in ms.json():
                 title = (m.get("title") or "").strip()
-                if not title:
+                if not title or is_version_milestone_title(title):
                     continue
                 created = m.get("created_at")
                 updated = m.get("updated_at") or created
                 closed = m.get("closed_at")
                 age = _age_days(updated, now)
+                desc = strip_github_boilerplate(m.get("description") or "")
                 rows.append(
                     {
                         "issue_id": f"milestone-{m.get('number')}",
-                        "text": f"{title}. {(m.get('description') or '')}".strip(),
+                        "text": compose_issue_text(title, desc),
+                        "title": title,
                         "labels": "",
                         "milestone_title": title,
                         "state": m.get("state") or "open",
@@ -398,7 +473,7 @@ class GitHubScraper:
                 if "pull_request" in issue:
                     continue
                 title = (issue.get("title") or "").strip()
-                body = (issue.get("body") or "")[:1500]
+                body = (issue.get("body") or "")[:4000]
                 labels = [
                     (lb.get("name") or "") for lb in (issue.get("labels") or [])
                 ]
@@ -411,7 +486,8 @@ class GitHubScraper:
                 rows.append(
                     {
                         "issue_id": f"issue-{issue.get('number')}",
-                        "text": f"{title}. {body}".strip(),
+                        "text": compose_issue_text(title, body),
+                        "title": title,
                         "labels": ", ".join(labels),
                         "milestone_title": ms_title,
                         "state": state,
@@ -462,6 +538,7 @@ class GitHubScraper:
             columns=[
                 "issue_id",
                 "text",
+                "title",
                 "labels",
                 "milestone_title",
                 "state",

@@ -87,6 +87,20 @@ python -m src.pipeline
 
 ## Embedding thresholds
 
-- `MATCH_THRESHOLD_TFIDF` default `0.22` (TF-IDF cosine space)
+- `MATCH_THRESHOLD_TFIDF` default `0.18` (char_wb TF-IDF cosine; calibrated on AntennaPod probes)
+- `MATCH_MARGIN_TFIDF` default `0.015` (top-1 must beat runner-up)
 - `MATCH_THRESHOLD_MINILM` default `0.45` (contract MiniLM calibration)
+- `MATCH_MARGIN_MINILM` default `0.05`
 - Active value reported in `GET /health` as `match_threshold`
+
+Recalibrate against live GitHub data (rewrites the regression fixture):
+
+```powershell
+cd C:\Users\Grigor\Desktop\Hackathon
+.\api\.venv\Scripts\python.exe scripts\calibrate_retrieval.py
+```
+
+The TF-IDF threshold is a **recall floor**, not a precision guarantee: it admits all
+five labelled true matches (min true top-1 ≈ `0.181`), but an ambiguous probe still
+reaches ≈ `0.191`. Ranking (top-1 + margin) does the disambiguation. See
+[`docs/CONTRACT.md`](../docs/CONTRACT.md) section 3.

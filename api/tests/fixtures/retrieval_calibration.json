@@ -1,0 +1,137 @@
+{
+  "description": "AntennaPod review fragments vs roadmap items for lexical retrieval calibration",
+  "vectorizer_mode_recommended": "char_wb",
+  "threshold_recommended": 0.18,
+  "margin_recommended": 0.015,
+  "calibration_notes": {
+    "char_wb_correct": 5,
+    "union_correct": 5,
+    "word_correct": 3,
+    "min_true_top1": 0.18,
+    "max_runner_up": 0.3554,
+    "max_negative_top1": 0.17252586722191932,
+    "overlap_true_vs_negative": false,
+    "n_roadmap_items": 129,
+    "note": "Absolute cosine distributions for true matches and strong false top-1s can touch/overlap; relative margin helps within-query ranking. Prefer char_wb over union on this data."
+  },
+  "items": [
+    {
+      "id": "chromecast_match",
+      "title": "Connecting and then casting from stopped player stops chromecast and local playback",
+      "text": "Connecting and then casting from stopped player stops chromecast and local playback. Connecting and then casting from stopped player stops chromecast and local playback. Connecting and then casting from stopped player stops chromecast and local playback. _No response_ _No response_ _No response_ _No response_"
+    },
+    {
+      "id": "auto_download_match",
+      "title": "Rework automatic download/deletion",
+      "text": "Rework automatic download/deletion. Rework automatic download/deletion. Rework automatic download/deletion"
+    },
+    {
+      "id": "stream_cache_match",
+      "title": "Episodes re-buffer after short pause and slower playback start in 3.12.0-beta1",
+      "text": "Episodes re-buffer after short pause and slower playback start in 3.12.0-beta1. Episodes re-buffer after short pause and slower playback start in 3.12.0-beta1. Episodes re-buffer after short pause and slower playback start in 3.12.0-beta1. Since 3.12.0-beta1 - Playback should resume almost instantly after short pauses - Buffered/cached audio should remain available for a reasonable amount of time - Playback startup time should be similar to previous versions (about 1 second) - Playback startup is significantly slower than in previous versions - If playback is paused for more than ~5 seconds, the episode appears to unload its buffered/cached data - On resume, the episode has to re-buffer before playback continues, causing a noticeable delay on every short pause - Offline/cached playback is "
+    },
+    {
+      "id": "playback_speed_match",
+      "title": "Per podcast playback speed not honored when advancing to the next episode in the queue",
+      "text": "Per podcast playback speed not honored when advancing to the next episode in the queue. Per podcast playback speed not honored when advancing to the next episode in the queue. Per podcast playback speed not honored when advancing to the next episode in the queue. maybe 3 weeks ago? When the next episode in the queue starts, it should automatically use the default playback speed set for that subscription. The playback speed does not change when advancing to the next episode in the queue. _No response_"
+    },
+    {
+      "id": "sleep_timer_match",
+      "title": "Sleep timer notification button not displayed",
+      "text": "Sleep timer notification button not displayed. Sleep timer notification button not displayed. Sleep timer notification button not displayed. _No response_ A sleep timer button is visible in the playback notification No sleep timer button is visible in the playback notification _No response_"
+    },
+    {
+      "id": "dist_1",
+      "title": "MediaSession handling",
+      "text": "MediaSession handling. MediaSession handling. MediaSession handling"
+    },
+    {
+      "id": "dist_2",
+      "title": "Toolbar updates",
+      "text": "Toolbar updates. Toolbar updates. Toolbar updates. The toolbars are currently set as the main ActionBar. This causes issues when navigating between fragments."
+    },
+    {
+      "id": "dist_3",
+      "title": "Android 12 compatibility",
+      "text": "Android 12 compatibility. Android 12 compatibility. Android 12 compatibility"
+    },
+    {
+      "id": "dist_4",
+      "title": "keep the newest  N episodes of each subscribed Podcast",
+      "text": "keep the newest  N episodes of each subscribed Podcast. keep the newest  N episodes of each subscribed Podcast. keep the newest  N episodes of each subscribed Podcast. Feature Request: i want to be able to keep the newest N episodes of each subscribed Podcast. This is not configurable at the moment."
+    },
+    {
+      "id": "dist_5",
+      "title": "Queue randomly fails to progress",
+      "text": "Queue randomly fails to progress. Queue randomly fails to progress. Queue randomly fails to progress. about a month ago? _No response_ _No response_ N/a"
+    },
+    {
+      "id": "dist_6",
+      "title": "Auto sleep not engaging if auto skip is used",
+      "text": "Auto sleep not engaging if auto skip is used. Auto sleep not engaging if auto skip is used. Auto sleep not engaging if auto skip is used. _No response_ 1. That the first 30 seconds are skipped 2. The sleep timer starts counting down. 1. Sleep timer is not turned on when auto skip is also used. _No response_"
+    },
+    {
+      "id": "dist_7",
+      "title": "Improve Sleep Timer UX",
+      "text": "Improve Sleep Timer UX. Improve Sleep Timer UX. Improve Sleep Timer UX. The sleep timer UX could be improved. 1. There is no animation or feedback when the \"Set sleep timer\"/\"Disable sleep timer\" button is tapped. 2. Could the actual timer countdown be shown in the playback view instead of being hidden away? 3. Add some sort of marker on the playback views line. To improve the user experience. Button: <img width=\"1440\" height=\"3168\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/e5649b70-0d08-4564-b593-1ef6e6de803a\" /> Suggestion: <img width=\"1440\" height=\"3168\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/7efa8c7a-ba67-4fc4-91db-14cd0fd1e9b4\" />"
+    },
+    {
+      "id": "dist_8",
+      "title": "Podcast Cover Art not loading",
+      "text": "Podcast Cover Art not loading. Podcast Cover Art not loading. Podcast Cover Art not loading. about 4 days ago The cover art for the podcast should appear in the grey square location The art for the episode does not appear (just a grey square with podcast name) <img width=\"1080\" height=\"1865\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/492acb3a-ce8b-4837-b1f8-6a8782a6ac64\" /> _No response_"
+    },
+    {
+      "id": "dist_9",
+      "title": "Accidentally swiped away playing notification doesn't reappear",
+      "text": "Accidentally swiped away playing notification doesn't reappear. Accidentally swiped away playing notification doesn't reappear. Accidentally swiped away playing notification doesn't reappear. _No response_ Either, the playing notification cannot be swiped away in the first place or it reappears after swiping it away. Currently, it's gone and doesn't reappear which means I cannot control the playback unless I open the app. _No response_"
+    },
+    {
+      "id": "dist_10",
+      "title": "Update chapter marks on feed update",
+      "text": "Update chapter marks on feed update. Update chapter marks on feed update. Update chapter marks on feed update. App version: 2.0.0-RC4 (from Google Play) Commit: a7b38bd15 Android version: 9 (Patchlevel May 1th 2019) Device model: BQ Aquaris X2 Pro Current behaviour: The chapter marks of the chaosradio episode are a complete mess. Episode: https://chaosradio.de/podlove/file/1866/s/webplayer/c/website/cr260-verschwoerungserzaehlungen.opus Feed: https://chaosradio.de/feed/opus <img width=\"250\" src=\"https://user-images.githubusercontent.com/31201759/83346570-d3bd5080-a31d-11ea-8bc1-9fb6098960a8.png\" />"
+    },
+    {
+      "id": "dist_11",
+      "title": "Chapter Refresh Logic and Caching of Chapters in SimpleChapters",
+      "text": "Chapter Refresh Logic and Caching of Chapters in SimpleChapters. Chapter Refresh Logic and Caching of Chapters in SimpleChapters. Chapter Refresh Logic and Caching of Chapters in SimpleChapters. Hi there I've come across the issue where, once AntennaPod has saved chapters into the database, that there is almost no possibility to refresh those chapters from the feed (or file) In my case I've pushed wrong chapter markers via the RSS feed by mistake and corrected them after a while and realized that they only appear when I create a new subscription of the podcast, as chapters are pretty statically cached in the SimpleChapters table of the database. During my investigation I've found that there has been a refresh episode chapters functionality in #6177 but as far as I understand this only relo"
+    },
+    {
+      "id": "dist_12",
+      "title": "Can't set tor as proxy, test always fail",
+      "text": "Can't set tor as proxy, test always fail. Can't set tor as proxy, test always fail. Can't set tor as proxy, test always fail. A week ago Test succeed, then being able to use the proxy Test fails with this error: Test failed: java.security.cert.CertPathValida torException: Trust anchor for certification path not found. ![Image](https://github.com/user-attachments/assets/f28a4b45-e687-411c-b679-57a7e7e48f22) _No response_"
+    }
+  ],
+  "probes": [
+    {
+      "id": "chromecast",
+      "text": "If there was Chromecast support it would be perfect.",
+      "expected_item_id": "chromecast_match"
+    },
+    {
+      "id": "auto_download",
+      "text": "only bug is the auto download doesn't seem to work",
+      "expected_item_id": "auto_download_match"
+    },
+    {
+      "id": "stream_cache",
+      "text": "Lack of a persistent stream cache leads to a long pause when resuming playback on slow networks",
+      "expected_item_id": "stream_cache_match"
+    },
+    {
+      "id": "playback_speed",
+      "text": "I would love it to go to at least 2.5 or maybe 3 speed",
+      "expected_item_id": "playback_speed_match"
+    },
+    {
+      "id": "sleep_timer",
+      "text": "sleep timer does not stop playback",
+      "expected_item_id": "sleep_timer_match"
+    }
+  ],
+  "negative_probes": [
+    {
+      "id": "playback_start_ambiguous",
+      "text": "Podcasts won't start playing"
+    }
+  ]
+}

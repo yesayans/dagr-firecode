@@ -98,7 +98,7 @@ class AnalysisPipeline:
                 app_name=app["display_name"],
                 package_name=app["package_name"],
                 github_repo=app.get("github_repo"),
-                refresh=False,
+                refresh=bool((app.get("metadata") or {}).get("force_roadmap_refresh")),
             )
             roadmap_source = resolved.roadmap_source
             degraded.extend(resolved.degraded)
@@ -192,7 +192,10 @@ class AnalysisPipeline:
             cb("matching", 65)
 
             threshold = self.settings.active_match_threshold(backend_name)
-            analyzer = GapMatrix(self.settings, match_threshold=threshold)
+            margin = self.settings.active_match_margin(backend_name)
+            analyzer = GapMatrix(
+                self.settings, match_threshold=threshold, match_margin=margin
+            )
             candidates = analyzer.analyze(
                 clusters=clusters,
                 review_embeddings=review_emb,

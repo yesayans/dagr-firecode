@@ -222,13 +222,21 @@ class GapMatrix:
     """Implement CONTRACT.md sections 3 and 4 (corpus-anchored temporal rules)."""
 
     def __init__(
-        self, settings: Settings | None = None, match_threshold: float | None = None
+        self,
+        settings: Settings | None = None,
+        match_threshold: float | None = None,
+        match_margin: float | None = None,
     ) -> None:
         self.settings = settings or get_settings()
         self.match_threshold = (
             match_threshold
             if match_threshold is not None
             else self.settings.active_match_threshold()
+        )
+        self.match_margin = (
+            match_margin
+            if match_margin is not None
+            else self.settings.active_match_margin()
         )
 
     def analyze(
@@ -278,9 +286,17 @@ class GapMatrix:
 
         for cluster in clusters:
             centroid = cluster["centroid"]
-            best_sim, best_idx = self._best_match(centroid, emb, contemp_idx)
+            best_sim, best_idx, best_margin = self._best_match(
+                centroid, emb, contemp_idx
+            )
             verdict, matched = self._verdict(
-                best_sim, best_idx, items, cluster, reviews_df, window
+                best_sim,
+                best_idx,
+                best_margin,
+                items,
+                cluster,
+                reviews_df,
+                window,
             )
             if verdict is None:
                 continue
@@ -301,13 +317,18 @@ class GapMatrix:
                 rating_spread=cluster["rating_spread"],
                 mode=mode,
             )
-            matched_title = (matched.get("text") or "")[:120] if matched else None
+            matched_title = None
+            if matched:
+                matched_title = (matched.get("title") or matched.get("text") or "")[
+                    :120
+                ]
             age = age_days_as_of(matched, window) if matched else None
             metrics = {
                 "cluster_size": cluster["size"],
                 "total_reviews": total_reviews,
                 "cluster_share": cluster["size"] / max(total_reviews, 1),
                 "best_similarity": best_sim,
+                "best_similarity_margin": best_margin,
                 "matched_item_title": matched_title,
                 "matched_item_url": (matched or {}).get("url"),
                 "matched_item_state": (matched or {}).get("state"),
@@ -410,24 +431,38 @@ class GapMatrix:
         centroid: np.ndarray,
         emb: np.ndarray,
         indices: list[int],
-    ) -> tuple[float | None, int | None]:
+    ) -> tuple[float | None, int | None, float | None]:
+        """Return (top1_sim, global_idx, top1−top2 margin). Margin is 1.0 if sole candidate."""
         if not indices or emb is None or len(emb) == 0:
-            return None, None
+            return None, None, None
         sims = emb[indices] @ centroid
-        local = int(np.argmax(sims))
-        return float(sims[local]), indices[local]
+        order = np.argsort(-sims)
+        local = int(order[0])
+        top = float(sims[local])
+        if len(sims) == 1:
+            margin = 1.0
+        else:
+            margin = float(sims[order[0]] - sims[order[1]])
+        return top, indices[local], margin
+
+    def _accepts_match(self, sim: float | None, margin: float | None) -> bool:
+        if sim is None or sim < self.match_threshold:
+            return False
+        if self.match_margin > 0 and (margin is None or margin < self.match_margin):
+            return False
+        return True
 
     def _verdict(
         self,
         best_sim: float | None,
         best_idx: int | None,
+        best_margin: float | None,
         items: list[dict[str, Any]],
         cluster: dict[str, Any],
         reviews_df: pd.DataFrame,
         window: ReviewWindow,
     ) -> tuple[str | None, dict[str, Any] | None]:
-        threshold = self.match_threshold
-        if best_sim is None or best_sim < threshold:
+        if not self._accepts_match(best_sim, best_margin):
             return "IGNORED", None
 
         matched = items[best_idx] if best_idx is not None and items else None
@@ -493,8 +528,8 @@ class GapMatrix:
         """Best post-window item matching the cluster above threshold."""
         if not future_idx:
             return None
-        sim, idx = self._best_match(centroid, emb, future_idx)
-        if sim is None or idx is None or sim < self.match_threshold:
+        sim, idx, margin = self._best_match(centroid, emb, future_idx)
+        if not self._accepts_match(sim, margin) or idx is None:
             return None
         return self._later_payload(items[idx], sim)
 
@@ -525,8 +560,8 @@ class GapMatrix:
                 idxs.append(i)
         if not idxs:
             return None
-        sim, idx = self._best_match(centroid, emb, idxs)
-        if sim is None or idx is None or sim < self.match_threshold:
+        sim, idx, margin = self._best_match(centroid, emb, idxs)
+        if not self._accepts_match(sim, margin) or idx is None:
             return None
         return self._later_payload(items[idx], sim)
 
@@ -536,7 +571,7 @@ class GapMatrix:
         updated = _item_updated(item)
         date = closed or created or updated
         return {
-            "title": (item.get("text") or "")[:200],
+            "title": (item.get("title") or item.get("text") or "")[:200],
             "url": item.get("url"),
             "state": item.get("state"),
             "date": date.isoformat() if date else None,

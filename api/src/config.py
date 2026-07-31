@@ -71,8 +71,17 @@ class Settings(BaseSettings):
 
     embedding_backend: str = Field(default="tfidf", alias="EMBEDDING_BACKEND")
     match_threshold: float = Field(default=0.45, alias="MATCH_THRESHOLD")
-    match_threshold_tfidf: float = Field(default=0.22, alias="MATCH_THRESHOLD_TFIDF")
+    # Calibrated on AntennaPod review↔issue probes (char_wb 3–5 + boilerplate strip,
+    # 192 roadmap items, scripts/calibrate_retrieval.py): all 5 labelled probes retrieve
+    # the correct top-1, min true top-1 ≈ 0.181. It is a RECALL FLOOR, not a precision
+    # guarantee — an ambiguous probe still tops out at ≈0.191 and the runner-up of a
+    # correct query reaches ≈0.331, so the absolute distributions overlap. Precision
+    # comes from top-1 + match_margin ranking, not from this number alone.
+    match_threshold_tfidf: float = Field(default=0.18, alias="MATCH_THRESHOLD_TFIDF")
     match_threshold_minilm: float = Field(default=0.45, alias="MATCH_THRESHOLD_MINILM")
+    # Top-1 must beat runner-up by this margin (min observed correct margin≈0.018).
+    match_margin_tfidf: float = Field(default=0.015, alias="MATCH_MARGIN_TFIDF")
+    match_margin_minilm: float = Field(default=0.05, alias="MATCH_MARGIN_MINILM")
 
     max_reviews: int = Field(default=2000, alias="MAX_REVIEWS")
     hf_dataset: str = Field(default="sealuzh/app_reviews", alias="HF_DATASET")
@@ -138,6 +147,12 @@ class Settings(BaseSettings):
             return float(self.match_threshold_minilm)
         return float(self.match_threshold_tfidf)
 
+    def active_match_margin(self, backend: str | None = None) -> float:
+        b = (backend or self.embedding_backend or "tfidf").lower().strip()
+        if b == "minilm":
+            return float(self.match_margin_minilm)
+        return float(self.match_margin_tfidf)
+
 
 @lru_cache
 def get_settings() -> Settings:
@@ -157,7 +172,9 @@ def main() -> None:
             "github_token_from_git_credential": s.github_token_from_git_credential,
             "embedding_backend": s.embedding_backend,
             "match_threshold": s.active_match_threshold(),
+            "match_margin": s.active_match_margin(),
             "match_threshold_tfidf": s.match_threshold_tfidf,
+            "match_margin_tfidf": s.match_margin_tfidf,
             "match_threshold_minilm": s.match_threshold_minilm,
             "max_reviews": s.max_reviews,
             "hf_dataset": s.hf_dataset,
