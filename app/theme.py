@@ -326,7 +326,14 @@ def _css(palette: Palette) -> str:
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
     overflow: hidden; height: 2.9em;
   }}
-  .aipm-rule {{ height: 1px; background: var(--border); border: 0; margin: 1.1rem 0; }}
+  /* `hr.aipm-rule`, not `.aipm-rule`: Streamlit styles rules with a descendant
+     selector (`.st-emotion-cache-xxxx hr {{ margin: 2em 0 }}`, specificity
+     0-1-1), which outranks a bare class (0-1-0) no matter where it sits in the
+     cascade. Adding the element selector matches that specificity, and since
+     this block is injected after Streamlit's the tie resolves our way. Safe to
+     win here - unlike a broad override, this can only ever match our own rule.
+     Spacing comes from the surrounding block gap instead of a margin. */
+  hr.aipm-rule {{ height: 1px; background: var(--border); border: 0; margin: 0; }}
   .aipm-kicker {{ font-size: 0.72rem; font-weight: 600; letter-spacing: 0.07em;
                   text-transform: uppercase; color: var(--ink-muted); }}
 

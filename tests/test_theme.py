@@ -90,3 +90,26 @@ class TestCompactNumber:
     )
     def test_formats(self, value, expected):
         assert compact_number(value) == expected
+
+
+class TestRuleSpecificity:
+    """Streamlit styles `hr` with a descendant selector.
+
+    `.st-emotion-cache-xxxx hr { margin: 2em 0 }` is specificity 0-1-1, which
+    outranks a bare `.aipm-rule` (0-1-0) wherever it sits in the cascade. The
+    divider silently rendered at 2em for that reason; the element selector is
+    what makes our declaration competitive.
+    """
+
+    def test_rule_selector_includes_the_element(self):
+        css = _strip_css_comments(_css(LIGHT))
+        assert "hr.aipm-rule" in css, (
+            "a bare .aipm-rule loses to Streamlit's `<cache-class> hr` rule"
+        )
+        # The bare form must not be the one carrying the declaration.
+        assert "\n  .aipm-rule {" not in css
+
+    def test_rule_declares_no_margin(self):
+        css = _strip_css_comments(_css(LIGHT))
+        block = css.split("hr.aipm-rule")[1].split("}")[0]
+        assert "margin: 0" in block
