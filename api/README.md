@@ -87,8 +87,8 @@ python -m src.pipeline
 
 ## Embedding thresholds
 
-- `MATCH_THRESHOLD_TFIDF` default `0.18` (char_wb TF-IDF cosine; calibrated on AntennaPod probes)
-- `MATCH_MARGIN_TFIDF` default `0.015` (top-1 must beat runner-up)
+- `MATCH_THRESHOLD_TFIDF` default `0.16` (char_wb TF-IDF recall floor; calibrated on AntennaPod probes)
+- `MATCH_MARGIN_TFIDF` default `0.0` (tfidf margins too tight to require; MiniLM still uses a margin)
 - `MATCH_THRESHOLD_MINILM` default `0.45` (contract MiniLM calibration)
 - `MATCH_MARGIN_MINILM` default `0.05`
 - Active value reported in `GET /health` as `match_threshold`

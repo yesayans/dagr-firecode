@@ -227,8 +227,8 @@ def main() -> None:
         f"overlap_with_negatives={overlap_with_neg}"
     )
     print(
-        "  (config defaults MATCH_THRESHOLD_TFIDF=0.18 MATCH_MARGIN_TFIDF=0.015 "
-        "chosen from earlier full-corpus band true>=0.181 vs runners)"
+        "  (config defaults MATCH_THRESHOLD_TFIDF=0.16 MATCH_MARGIN_TFIDF=0.0 "
+        "recall floor; true/neg distributions overlap)"
     )
 
     fixture_items: list[dict] = []
@@ -269,8 +269,8 @@ def main() -> None:
             "AntennaPod review fragments vs roadmap items for lexical retrieval calibration"
         ),
         "vectorizer_mode_recommended": recommended,
-        "threshold_recommended": 0.18,
-        "margin_recommended": 0.015,
+        "threshold_recommended": 0.16,
+        "margin_recommended": 0.0,
         "calibration_notes": {
             "char_wb_correct": char["correct"],
             "union_correct": union["correct"],

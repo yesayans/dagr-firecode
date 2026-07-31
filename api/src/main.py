@@ -67,6 +67,7 @@ def _health_payload() -> dict[str, Any]:
         "github_token_source": settings.github_token_source,
         "embedding_backend": active_backend,
         "match_threshold": settings.active_match_threshold(active_backend),
+        "match_margin": settings.active_match_margin(active_backend),
     }
 
 

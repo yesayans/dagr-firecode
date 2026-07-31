@@ -31,21 +31,13 @@ class ReviewFetchResult:
 
 UA = "dagr/1.0 (+https://github.com/silent-stakeholder)"
 
-# Named issue-template sections that are noise for embedding (drop header + body)
-_BOILERPLATE_HEADERS = frozenset(
-    {
-        "checklist",
-        "environment",
-        "app version",
-        "device model",
-        "android version",
-        "antennapod version",
-        "how to reproduce",
-        "steps to reproduce",
-        # "Additional context" often holds the real write-up — keep it
-    }
-)
 _HTML_COMMENT = re.compile(r"<!--.*?-->", re.S)
+_BOILERPLATE_HEADER_LINE = re.compile(
+    r"(?im)^###\s*("
+    r"Checklist|Environment|App version|Device model|Android version|"
+    r"AntennaPod version|How to reproduce|Steps to reproduce"
+    r")\b.*$"
+)
 _CHECKBOX_LINE = re.compile(r"(?m)^\s*[-*]\s*\[[ xX]\]\s*.*$")
 _SEARCH_FN_LINE = re.compile(
     r"(?im)^\s*[-*]?\s*\[[ xX]?\]?\s*I have used the search function.*$"
@@ -53,8 +45,13 @@ _SEARCH_FN_LINE = re.compile(
 _DOCS_LINE = re.compile(
     r"(?im)^\s*[-*]?\s*\[[ xX]?\]?\s*I have read (the )?(relevant )?(documentation|wiki).*$"
 )
+_ENV_FIELD_LINE = re.compile(
+    r"(?im)^\s*("
+    r"Android version|AntennaPod version|App version|Device model|"
+    r"Device|OS version|Free space"
+    r")\s*:.*$"
+)
 _WS = re.compile(r"\s+")
-_SECTION_SPLIT = re.compile(r"(?m)^(###\s+.+)$")
 # Release milestones named like "1.5.2" / "v3.0" carry no thematic signal for matching
 _VERSION_MILESTONE_TITLE = re.compile(
     r"^v?\d+(?:\.\d+)+(?:[-._]?[a-z0-9]+)?$", re.I
@@ -70,23 +67,12 @@ def strip_github_boilerplate(text: str) -> str:
     if not text:
         return ""
     out = _HTML_COMMENT.sub(" ", text)
-    # Split on ### headers so Environment/Checklist cannot swallow trailing prose
-    parts = _SECTION_SPLIT.split(out)
-    kept: list[str] = [parts[0]]
-    i = 1
-    while i < len(parts):
-        header = parts[i]
-        body = parts[i + 1] if i + 1 < len(parts) else ""
-        name = re.sub(r"^###\s*", "", header).strip().lower()
-        # Match on startswith so "Checklist (please complete)" still drops
-        drop = any(name == h or name.startswith(h) for h in _BOILERPLATE_HEADERS)
-        if not drop:
-            kept.append(body)
-        i += 2
-    out = "\n".join(kept)
+    # Drop template headers/lines but keep surrounding prose (never swallow EOF)
+    out = _BOILERPLATE_HEADER_LINE.sub(" ", out)
     out = _SEARCH_FN_LINE.sub(" ", out)
     out = _DOCS_LINE.sub(" ", out)
     out = _CHECKBOX_LINE.sub(" ", out)
+    out = _ENV_FIELD_LINE.sub(" ", out)
     return _WS.sub(" ", out).strip()
 
 

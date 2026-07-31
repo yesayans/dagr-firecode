@@ -29,22 +29,23 @@ that is **contemporaneous with the review corpus** (item `created_at` ≤
 complaint — they are reserved for retrospective validation (section 4).
 
 `MATCH_THRESHOLD` is per-embedding-backend configurable (`MATCH_THRESHOLD_TFIDF`
-defaults to `0.18` for char_wb TF-IDF; `MATCH_THRESHOLD_MINILM` defaults to `0.45`).
-A match also requires a relative margin: top-1 similarity must exceed the runner-up
-by at least `MATCH_MARGIN_TFIDF` (default `0.015`) / `MATCH_MARGIN_MINILM`.
+defaults to `0.16` for char_wb TF-IDF; `MATCH_THRESHOLD_MINILM` defaults to `0.45`).
+MiniLM also requires a relative margin (`MATCH_MARGIN_MINILM`). For tfidf,
+`MATCH_MARGIN_TFIDF` defaults to `0.0` — calibration does not support a useful
+margin (weakest correct top-1 margin ≈ `0.003`).
 
 **What the threshold is and is not.** Calibrated by `scripts/calibrate_retrieval.py`
-against 192 live AntennaPod roadmap items with five hand-labelled review probes
-(fixture: `api/tests/fixtures/retrieval_calibration.json`): char_wb retrieves the
-correct top-1 for 5/5 probes, and the weakest true match scores `0.181`. The
-threshold is therefore a **recall floor** — it is set just low enough to admit every
-known true match. It is **not** a precision guarantee: an intentionally ambiguous
-negative probe ("Podcasts won't start playing") reaches `0.191`, and the runner-up
-within a correct query reaches `0.331`. Absolute similarity distributions for true
-matches and plausible-but-wrong items overlap. Precision comes from taking top-1 and
-requiring `MATCH_MARGIN`, not from the absolute number. Consequence for verdicts: the
-`IGNORED` branch (`s < threshold`) is conservative — a theme must be lexically distant
-from *every* contemporaneous item before we claim the roadmap ignores it.
+against live AntennaPod roadmap items (boilerplate stripped, version milestones
+excluded) with five hand-labelled review probes (fixture:
+`api/tests/fixtures/retrieval_calibration.json`): char_wb retrieves the correct
+top-1 for 5/5 probes vs ~2–3/5 for word n-grams; union ties accuracy but loses on
+score magnitude. Weakest true match ≈ `0.165`; ambiguous negative
+("Podcasts won't start playing") ≈ `0.175`; within-query runner-ups reach ≈ `0.33`.
+**No absolute threshold separates true matches from plausible-but-wrong top-1s.**
+`0.16` is a **recall floor** — low enough to admit every labelled true match — not a
+precision guarantee. Ranking (top-1 under char_wb) carries the signal. Consequence
+for verdicts: the `IGNORED` branch is conservative only when a theme is lexically
+distant from every contemporaneous item.
 
 All recency / staleness comparisons are anchored to the **review corpus window**, not
 wall-clock `now`. Compute `review_window_start` / `review_window_end` from the

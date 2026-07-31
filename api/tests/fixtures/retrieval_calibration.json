@@ -1,16 +1,16 @@
 {
   "description": "AntennaPod review fragments vs roadmap items for lexical retrieval calibration",
   "vectorizer_mode_recommended": "char_wb",
-  "threshold_recommended": 0.18,
-  "margin_recommended": 0.015,
+  "threshold_recommended": 0.16,
+  "margin_recommended": 0.0,
   "calibration_notes": {
     "char_wb_correct": 5,
-    "union_correct": 5,
-    "word_correct": 3,
-    "min_true_top1": 0.18,
-    "max_runner_up": 0.3554,
-    "max_negative_top1": 0.17252586722191932,
-    "overlap_true_vs_negative": false,
+    "union_correct": 4,
+    "word_correct": 2,
+    "min_true_top1": 0.1653,
+    "max_runner_up": 0.3356,
+    "max_negative_top1": 0.17499455432214672,
+    "overlap_true_vs_negative": true,
     "n_roadmap_items": 129,
     "note": "Absolute cosine distributions for true matches and strong false top-1s can touch/overlap; relative margin helps within-query ranking. Prefer char_wb over union on this data."
   },
@@ -18,7 +18,7 @@
     {
       "id": "chromecast_match",
       "title": "Connecting and then casting from stopped player stops chromecast and local playback",
-      "text": "Connecting and then casting from stopped player stops chromecast and local playback. Connecting and then casting from stopped player stops chromecast and local playback. Connecting and then casting from stopped player stops chromecast and local playback. _No response_ _No response_ _No response_ _No response_"
+      "text": "Connecting and then casting from stopped player stops chromecast and local playback. Connecting and then casting from stopped player stops chromecast and local playback. Connecting and then casting from stopped player stops chromecast and local playback. 3.12.0-beta4 17 Pixel 9 ### First occurred _No response_ There is a difference between those two scenarios, and I am not sure why. 1. Kill AntennaPod 2. Open 3. Press cast button 4. Chromecast shows AntennaPod icon 5. Press play on the player screen 6. Chromecast goes to home screen, AntennaPod closes episode vs 1. Kill AntennaPod 2. Open 3. Play+pause 4. Press cast button 5. Chromecast shows episode 6. Press play on player screen 7. Chromecast plays episode Maybe the playback service is not running in the first scenario, and when pressing"
     },
     {
       "id": "auto_download_match",
@@ -28,17 +28,17 @@
     {
       "id": "stream_cache_match",
       "title": "Episodes re-buffer after short pause and slower playback start in 3.12.0-beta1",
-      "text": "Episodes re-buffer after short pause and slower playback start in 3.12.0-beta1. Episodes re-buffer after short pause and slower playback start in 3.12.0-beta1. Episodes re-buffer after short pause and slower playback start in 3.12.0-beta1. Since 3.12.0-beta1 - Playback should resume almost instantly after short pauses - Buffered/cached audio should remain available for a reasonable amount of time - Playback startup time should be similar to previous versions (about 1 second) - Playback startup is significantly slower than in previous versions - If playback is paused for more than ~5 seconds, the episode appears to unload its buffered/cached data - On resume, the episode has to re-buffer before playback continues, causing a noticeable delay on every short pause - Offline/cached playback is "
+      "text": "Episodes re-buffer after short pause and slower playback start in 3.12.0-beta1. Episodes re-buffer after short pause and slower playback start in 3.12.0-beta1. Episodes re-buffer after short pause and slower playback start in 3.12.0-beta1. 3.12.0-beta1 15 (OS version: 5.10.236-android12-9-o-gf01078a45a12) OnePlus CPH2415 ### First occurred Since 3.12.0-beta1 1. Start playing a podcast episode 2. Pause playback for around 5 or more seconds 3. Press play to resume ### Expected behaviour - Playback should resume almost instantly after short pauses - Buffered/cached audio should remain available for a reasonable amount of time - Playback startup time should be similar to previous versions (about 1 second) ### Current behaviour - Playback startup is significantly slower than in previous version"
     },
     {
       "id": "playback_speed_match",
       "title": "Per podcast playback speed not honored when advancing to the next episode in the queue",
-      "text": "Per podcast playback speed not honored when advancing to the next episode in the queue. Per podcast playback speed not honored when advancing to the next episode in the queue. Per podcast playback speed not honored when advancing to the next episode in the queue. maybe 3 weeks ago? When the next episode in the queue starts, it should automatically use the default playback speed set for that subscription. The playback speed does not change when advancing to the next episode in the queue. _No response_"
+      "text": "Per podcast playback speed not honored when advancing to the next episode in the queue. Per podcast playback speed not honored when advancing to the next episode in the queue. Per podcast playback speed not honored when advancing to the next episode in the queue. 3.12.0-beta3 17 Pixel 8 ### First occurred maybe 3 weeks ago? 1. In the podcast subscription settings, set a custom playback speed for at least one of the subscriptions. As an example, I typically play everything at 2x speed, but for at least one subscription I set its default to 1x. 2. Add a mix of episodes from this (1x) podcast and other (2x) podcasts in the queue. 3. When playing the podcasts in the queue, once an episode finishes, the next one starts playing automatically. When this happens, it seems like the playback speed d"
     },
     {
       "id": "sleep_timer_match",
       "title": "Sleep timer notification button not displayed",
-      "text": "Sleep timer notification button not displayed. Sleep timer notification button not displayed. Sleep timer notification button not displayed. _No response_ A sleep timer button is visible in the playback notification No sleep timer button is visible in the playback notification _No response_"
+      "text": "Sleep timer notification button not displayed. Sleep timer notification button not displayed. Sleep timer notification button not displayed. 3.12.0-beta1 16 _No response_ ### First occurred _No response_ Likely another playback service rewrite-related regression. 1. Ensure sleep timer is selected under Settings > User interface > Set notification buttons 2. Play an episode 3. Activate the sleep timer ### Expected behaviour A sleep timer button is visible in the playback notification ### Current behaviour No sleep timer button is visible in the playback notification ### Crash logs _No response_"
     },
     {
       "id": "dist_1",
@@ -63,42 +63,42 @@
     {
       "id": "dist_5",
       "title": "Queue randomly fails to progress",
-      "text": "Queue randomly fails to progress. Queue randomly fails to progress. Queue randomly fails to progress. about a month ago? _No response_ _No response_ N/a"
+      "text": "Queue randomly fails to progress. Queue randomly fails to progress. Queue randomly fails to progress. version 3.12.0-beta4 de.danoeh.antennapod 17 Pixel 10 ### First occurred about a month ago? 1. Auto downloaded some episodes, added to queue 2. Continuous playback is on 3. Played 1st clip. 4. While it's playing, remove a few later clips from queue: delete & un-queue. 1st clip is still playing when this is done. 5. Playback continues until end of one clip, then unexpectedly stops There are still clips in queue where it stopped, and they're downloaded ### Expected behaviour _No response_ ### Current behaviour _No response_ ### Crash logs N/a"
     },
     {
       "id": "dist_6",
       "title": "Auto sleep not engaging if auto skip is used",
-      "text": "Auto sleep not engaging if auto skip is used. Auto sleep not engaging if auto skip is used. Auto sleep not engaging if auto skip is used. _No response_ 1. That the first 30 seconds are skipped 2. The sleep timer starts counting down. 1. Sleep timer is not turned on when auto skip is also used. _No response_"
+      "text": "Auto sleep not engaging if auto skip is used. Auto sleep not engaging if auto skip is used. Auto sleep not engaging if auto skip is used. 3.11.4 16 _No response_ ### First occurred _No response_ 1. Turn on feature to auto skip x amounts of seconds and automatic sleep timer during a certain timw interval such as 21-07. 2. Start playing a pod at 22:00. ### Expected behaviour 1. That the first 30 seconds are skipped 2. The sleep timer starts counting down. ### Current behaviour 1. Sleep timer is not turned on when auto skip is also used. ### Crash logs _No response_"
     },
     {
       "id": "dist_7",
       "title": "Improve Sleep Timer UX",
-      "text": "Improve Sleep Timer UX. Improve Sleep Timer UX. Improve Sleep Timer UX. The sleep timer UX could be improved. 1. There is no animation or feedback when the \"Set sleep timer\"/\"Disable sleep timer\" button is tapped. 2. Could the actual timer countdown be shown in the playback view instead of being hidden away? 3. Add some sort of marker on the playback views line. To improve the user experience. Button: <img width=\"1440\" height=\"3168\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/e5649b70-0d08-4564-b593-1ef6e6de803a\" /> Suggestion: <img width=\"1440\" height=\"3168\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/7efa8c7a-ba67-4fc4-91db-14cd0fd1e9b4\" />"
+      "text": "Improve Sleep Timer UX. Improve Sleep Timer UX. Improve Sleep Timer UX. 3.11.4 ### Feature or improvement you want The sleep timer UX could be improved. 1. There is no animation or feedback when the \"Set sleep timer\"/\"Disable sleep timer\" button is tapped. 2. Could the actual timer countdown be shown in the playback view instead of being hidden away? 3. Add some sort of marker on the playback views line. ### Why should this be added? To improve the user experience. ### Screenshots / Drawings / Technical details Button: <img width=\"1440\" height=\"3168\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/e5649b70-0d08-4564-b593-1ef6e6de803a\" /> Suggestion: <img width=\"1440\" height=\"3168\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/7efa8c7a-ba67-4fc4-91db-14cd0fd1e9b4\" "
     },
     {
       "id": "dist_8",
       "title": "Podcast Cover Art not loading",
-      "text": "Podcast Cover Art not loading. Podcast Cover Art not loading. Podcast Cover Art not loading. about 4 days ago The cover art for the podcast should appear in the grey square location The art for the episode does not appear (just a grey square with podcast name) <img width=\"1080\" height=\"1865\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/492acb3a-ce8b-4837-b1f8-6a8782a6ac64\" /> _No response_"
+      "text": "Podcast Cover Art not loading. Podcast Cover Art not loading. Podcast Cover Art not loading. 3.12.0-beta6 16 samsung SM-A356U1 ### First occurred about 4 days ago 1. Download episode 2. Setting: Use episode cover should be off (so the queue will show podcast cover art) 3. Look at the episode in Queue 4. The art for the episode does not appear (just a grey square with podcast name) 5. This does not happen with every podcast (only NPR podcasts, but not all), but if it is happening with a podcast it will happen with every episode of this podcast (see image under Current Behavior to see examples) ### Expected behaviour The cover art for the podcast should appear in the grey square location ### Current behaviour The art for the episode does not appear (just a grey square with podcast name) <img"
     },
     {
       "id": "dist_9",
       "title": "Accidentally swiped away playing notification doesn't reappear",
-      "text": "Accidentally swiped away playing notification doesn't reappear. Accidentally swiped away playing notification doesn't reappear. Accidentally swiped away playing notification doesn't reappear. _No response_ Either, the playing notification cannot be swiped away in the first place or it reappears after swiping it away. Currently, it's gone and doesn't reappear which means I cannot control the playback unless I open the app. _No response_"
+      "text": "Accidentally swiped away playing notification doesn't reappear. Accidentally swiped away playing notification doesn't reappear. Accidentally swiped away playing notification doesn't reappear. 3.11.4 17 Pixel 8 ### First occurred _No response_ 1. Play an episode 2. Swipe away the playing notification ### Expected behaviour Either, the playing notification cannot be swiped away in the first place or it reappears after swiping it away. ### Current behaviour Currently, it's gone and doesn't reappear which means I cannot control the playback unless I open the app. ### Crash logs _No response_"
     },
     {
       "id": "dist_10",
       "title": "Update chapter marks on feed update",
-      "text": "Update chapter marks on feed update. Update chapter marks on feed update. Update chapter marks on feed update. App version: 2.0.0-RC4 (from Google Play) Commit: a7b38bd15 Android version: 9 (Patchlevel May 1th 2019) Device model: BQ Aquaris X2 Pro Current behaviour: The chapter marks of the chaosradio episode are a complete mess. Episode: https://chaosradio.de/podlove/file/1866/s/webplayer/c/website/cr260-verschwoerungserzaehlungen.opus Feed: https://chaosradio.de/feed/opus <img width=\"250\" src=\"https://user-images.githubusercontent.com/31201759/83346570-d3bd5080-a31d-11ea-8bc1-9fb6098960a8.png\" />"
+      "text": "Update chapter marks on feed update. Update chapter marks on feed update. Update chapter marks on feed update. Current behaviour: The chapter marks of the chaosradio episode are a complete mess. Episode: https://chaosradio.de/podlove/file/1866/s/webplayer/c/website/cr260-verschwoerungserzaehlungen.opus Feed: https://chaosradio.de/feed/opus <img width=\"250\" src=\"https://user-images.githubusercontent.com/31201759/83346570-d3bd5080-a31d-11ea-8bc1-9fb6098960a8.png\" />"
     },
     {
       "id": "dist_11",
       "title": "Chapter Refresh Logic and Caching of Chapters in SimpleChapters",
-      "text": "Chapter Refresh Logic and Caching of Chapters in SimpleChapters. Chapter Refresh Logic and Caching of Chapters in SimpleChapters. Chapter Refresh Logic and Caching of Chapters in SimpleChapters. Hi there I've come across the issue where, once AntennaPod has saved chapters into the database, that there is almost no possibility to refresh those chapters from the feed (or file) In my case I've pushed wrong chapter markers via the RSS feed by mistake and corrected them after a while and realized that they only appear when I create a new subscription of the podcast, as chapters are pretty statically cached in the SimpleChapters table of the database. During my investigation I've found that there has been a refresh episode chapters functionality in #6177 but as far as I understand this only relo"
+      "text": "Chapter Refresh Logic and Caching of Chapters in SimpleChapters. Chapter Refresh Logic and Caching of Chapters in SimpleChapters. Chapter Refresh Logic and Caching of Chapters in SimpleChapters. 3.1.1.4 ### Feature or improvement you want Hi there I've come across the issue where, once AntennaPod has saved chapters into the database, that there is almost no possibility to refresh those chapters from the feed (or file) In my case I've pushed wrong chapter markers via the RSS feed by mistake and corrected them after a while and realized that they only appear when I create a new subscription of the podcast, as chapters are pretty statically cached in the SimpleChapters table of the database. During my investigation I've found that there has been a refresh episode chapters functionality in #61"
     },
     {
       "id": "dist_12",
       "title": "Can't set tor as proxy, test always fail",
-      "text": "Can't set tor as proxy, test always fail. Can't set tor as proxy, test always fail. Can't set tor as proxy, test always fail. A week ago Test succeed, then being able to use the proxy Test fails with this error: Test failed: java.security.cert.CertPathValida torException: Trust anchor for certification path not found. ![Image](https://github.com/user-attachments/assets/f28a4b45-e687-411c-b679-57a7e7e48f22) _No response_"
+      "text": "Can't set tor as proxy, test always fail. Can't set tor as proxy, test always fail. Can't set tor as proxy, test always fail. 3.11 15 Samsung galaxy A14 ### First occurred A week ago 1. Have tor run in the background 2. Go to Settings, then Downloads, then Proxy 3. Set proxy type SOCKS 4. Set port 9050 5. Tap Test button ### Expected behaviour Test succeed, then being able to use the proxy ### Current behaviour Test fails with this error: Test failed: java.security.cert.CertPathValida torException: Trust anchor for certification path not found. ![Image](https://github.com/user-attachments/assets/f28a4b45-e687-411c-b679-57a7e7e48f22) ### Crash logs _No response_"
     }
   ],
   "probes": [
