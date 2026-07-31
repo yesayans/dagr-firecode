@@ -21,6 +21,7 @@ from aipm.schemas import (
     AnalysisResult,
     AnalysisRun,
     App,
+    DemoAppEntry,
     DemoManifest,
     Review,
     RunStatus,
@@ -397,6 +398,63 @@ class SqliteRepository(Repository):
             finished_at=_parse_datetime(row["finished_at"]),
             error=row["error"],
         )
+
+    def list_catalog(self) -> list[DemoAppEntry]:
+        """Every app with a completed run, its newest run, in one query.
+
+        Deliberately reads storage rather than the demo manifest: the manifest
+        is the record of what `precompute_demo.py` produced, so listing from it
+        made apps analysed through the upload page invisible in the catalogue
+        even though their runs were stored and openable.
+
+        `selection_score` / `selection_reasons` stay empty here - those belong to
+        the demo strategy, and the caller merges them in for apps the manifest
+        knows about.
+        """
+        rows = self._conn.execute(
+            """
+            SELECT app_id, name, categories, run_id, n_reviews, n_units,
+                   n_clusters, n_needs
+            FROM (
+                SELECT a.app_id           AS app_id,
+                       a.name             AS name,
+                       a.categories       AS categories,
+                       r.run_id           AS run_id,
+                       r.n_reviews        AS n_reviews,
+                       r.n_units          AS n_units,
+                       r.n_clusters       AS n_clusters,
+                       (SELECT COUNT(*) FROM needs n WHERE n.run_id = r.run_id)
+                                          AS n_needs,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY a.app_id
+                           -- finished_at can be NULL on an interrupted run;
+                           -- run_id breaks ties deterministically.
+                           ORDER BY r.finished_at DESC, r.run_id DESC
+                       ) AS recency
+                FROM apps a
+                JOIN analysis_runs r ON r.app_id = a.app_id
+                WHERE r.status = ? AND r.result_blob IS NOT NULL
+            )
+            WHERE recency = 1
+            ORDER BY n_needs DESC, name COLLATE NOCASE
+            """,
+            (RunStatus.COMPLETE.value,),
+        ).fetchall()
+
+        return [
+            DemoAppEntry(
+                app_id=row["app_id"],
+                app_name=row["name"],
+                category=(json.loads(row["categories"] or "[]") or ["Uncategorised"])[0],
+                run_id=row["run_id"],
+                n_reviews=row["n_reviews"] or 0,
+                n_units=row["n_units"] or 0,
+                n_clusters=row["n_clusters"] or 0,
+                n_needs=row["n_needs"] or 0,
+                status=RunStatus.COMPLETE,
+            )
+            for row in rows
+        ]
 
     # -- demo catalogue ----------------------------------------------------
 

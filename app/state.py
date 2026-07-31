@@ -108,13 +108,26 @@ def load_reviews(app_id: str, run_id: str | None = None) -> list[Review]:
 
 @st.cache_data(show_spinner=False)
 def load_catalog() -> list[dict[str, Any]]:
-    """Rows for the Home grid: manifest entries joined onto stored apps."""
+    """Rows for the catalogue grid: every app that has a completed run.
+
+    Sourced from storage, not from the demo manifest. The manifest records what
+    `precompute_demo.py` produced, so reading it directly meant an app analysed
+    through the Upload page was stored, openable by URL, and yet absent from the
+    catalogue. The manifest still supplies the selection rationale for the demo
+    apps, which is metadata the repository has no business knowing.
+    """
     repository = get_repository()
     manifest = load_manifest()
-    if manifest is None:
-        return []
+    reasons = {
+        entry.app_id: (entry.selection_score, entry.selection_reasons)
+        for entry in (manifest.entries if manifest else [])
+    }
+
     rows: list[dict[str, Any]] = []
-    for entry in manifest.entries:
+    for entry in repository.list_catalog():
+        entry.selection_score, entry.selection_reasons = reasons.get(
+            entry.app_id, (0.0, ["Analysed from an uploaded dataset."])
+        )
         app = repository.get_app(entry.app_id)
         rows.append(
             {
@@ -127,6 +140,9 @@ def load_catalog() -> list[dict[str, Any]]:
                 "n_needs": entry.n_needs,
                 "status": entry.status.value,
                 "error": entry.error,
+                # Zero for anything the demo strategy did not pick, which is how
+                # the catalogue tells an uploaded app from a demo one.
+                "selection_score": entry.selection_score,
                 "selection_reasons": entry.selection_reasons,
                 "store_score": app.score if app else None,
                 "downloads": app.downloads_numeric if app else None,

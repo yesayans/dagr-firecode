@@ -232,3 +232,65 @@ class TestThreadSafety:
         assert not errors, f"concurrent write failed: {errors[0]}"
         assert repository.count_reviews(app.app_id) == 8
         repository.close()
+
+
+class TestCatalog:
+    """The catalogue lists storage, not the demo manifest.
+
+    Reading the manifest directly meant an app analysed through the Upload page
+    was persisted and openable by URL, yet never appeared in the catalogue —
+    because only `precompute_demo.py` writes that manifest.
+    """
+
+    def test_lists_apps_with_a_completed_run(self, repo, app):
+        repo.save_apps([app])
+        repo.save_result(make_result(app))
+        entries = repo.list_catalog()
+        assert [e.app_id for e in entries] == ["app1"]
+        assert entries[0].n_needs == 1
+        assert entries[0].n_reviews == 10
+
+    def test_includes_apps_absent_from_the_manifest(self, repo, app):
+        """The regression: an uploaded app has no manifest entry."""
+        repo.save_apps([app])
+        repo.save_result(make_result(app))
+        repo.save_demo_manifest(DemoManifest(entries=[]))  # precompute knows nothing
+        assert [e.app_id for e in repo.list_catalog()] == ["app1"]
+
+    def test_excludes_apps_with_no_run(self, repo, app):
+        repo.save_apps([app])
+        assert repo.list_catalog() == []
+
+    def test_excludes_failed_runs(self, repo, app):
+        repo.save_apps([app])
+        failed = make_result(app)
+        failed.run.status = RunStatus.FAILED
+        repo.save_result(failed)
+        assert repo.list_catalog() == []
+
+    def test_one_row_per_app_using_the_newest_run(self, repo, app):
+        repo.save_apps([app])
+        older = make_result(app, run_id="run_old", params_hash="h_old")
+        older.run.finished_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        newer = make_result(app, run_id="run_new", params_hash="h_new")
+        newer.run.finished_at = datetime(2026, 6, 1, tzinfo=timezone.utc)
+        repo.save_result(older)
+        repo.save_result(newer)
+
+        entries = repo.list_catalog()
+        assert len(entries) == 1
+        assert entries[0].run_id == "run_new"
+
+    def test_category_comes_from_the_app(self, repo, app):
+        repo.save_apps([app])
+        repo.save_result(make_result(app))
+        assert repo.list_catalog()[0].category == "Food & Drink"
+
+    def test_uncategorised_app_does_not_crash(self, repo):
+        bare = App(app_id="bare", name="Bare App", categories=[])
+        repo.save_apps([bare])
+        repo.save_result(make_result(bare, run_id="r_bare", params_hash="h_bare"))
+        assert repo.list_catalog()[0].category == "Uncategorised"
+
+    def test_empty_database(self, repo):
+        assert repo.list_catalog() == []

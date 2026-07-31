@@ -10,7 +10,14 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 
-from aipm.schemas import AnalysisResult, AnalysisRun, App, DemoManifest, Review
+from aipm.schemas import (
+    AnalysisResult,
+    AnalysisRun,
+    App,
+    DemoAppEntry,
+    DemoManifest,
+    Review,
+)
 
 
 class Repository(ABC):
@@ -72,6 +79,15 @@ class Repository(ABC):
     @abstractmethod
     def find_run_by_params(self, app_id: str, params_hash: str) -> AnalysisRun | None:
         """Used to skip work that has already been done. Makes re-runs free."""
+
+    @abstractmethod
+    def list_catalog(self) -> list[DemoAppEntry]:
+        """Every app that has a completed run, newest run per app.
+
+        This is what the catalogue lists, deliberately *not* the demo manifest.
+        The manifest records what one script produced; an app analysed through
+        the upload page is equally real and must show up too.
+        """
 
     # -- demo catalogue ----------------------------------------------------
 

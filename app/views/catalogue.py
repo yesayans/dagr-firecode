@@ -127,7 +127,10 @@ def app_card(row: dict, *, is_selected: bool) -> None:
         ):
             switch_to("views/dashboard.py", Selection(row["app_id"], row["run_id"]))
 
-        with st.expander("Why this app is in the demo"):
+        # Uploaded apps were never "selected" by the demo strategy, so the
+        # demo-selection wording would be a lie for them.
+        is_demo = bool(row["selection_score"])
+        with st.expander("Why this app is in the demo" if is_demo else "About this dataset"):
             for reason in row["selection_reasons"]:
                 st.caption(f"• {reason}")
 
@@ -145,34 +148,47 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    if manifest is None:
+    # Emptiness is decided by the catalogue, not the manifest: an app analysed
+    # through the Upload page is real even when the precompute script has never
+    # been run, and telling that user "no analysis found" would be false.
+    catalog = load_catalog()
+    if not catalog:
         st.info(
-            "No precomputed analysis found. Run the precompute script, or upload "
-            "your own CSVs on the **Upload Dataset** page.",
+            "No analysis found yet. Run the precompute script, or upload your own "
+            "CSVs on the **Upload dataset** page.",
             icon="🗄️",
         )
         st.code("python scripts/precompute_demo.py", language="bash")
         return
 
-    catalog = load_catalog()
-    if not catalog:
-        st.warning("The manifest is empty.", icon="⚠️")
-        return
-
-    # --- run-level KPIs ----------------------------------------------------
+    # --- KPIs, summed over what is actually listed -------------------------
+    # Taking these from the manifest would leave them disagreeing with the grid
+    # the moment anything is uploaded.
+    n_uploaded = sum(1 for row in catalog if not row["selection_score"])
     columns = st.columns(4)
     with columns[0]:
-        stat("Applications", str(manifest.n_apps), sub="analysed end to end")
-    with columns[1]:
-        stat("Reviews", compact_number(manifest.total_reviews), sub="segmented and clustered")
-    with columns[2]:
-        stat("Hidden needs", str(manifest.total_needs), sub="each one cited and scored")
-    with columns[3]:
         stat(
-            "Analysis cost",
-            f"${manifest.total_cost_usd:.2f}",
-            sub=f"{manifest.duration_s / 60:.0f} min of compute",
+            "Applications", str(len(catalog)),
+            sub=f"{n_uploaded} uploaded" if n_uploaded else "analysed end to end",
         )
+    with columns[1]:
+        stat(
+            "Reviews", compact_number(sum(row["n_reviews"] for row in catalog)),
+            sub="segmented and clustered",
+        )
+    with columns[2]:
+        stat(
+            "Hidden needs", str(sum(row["n_needs"] for row in catalog)),
+            sub="each one cited and scored",
+        )
+    with columns[3]:
+        if manifest:
+            stat(
+                "Precompute cost", f"${manifest.total_cost_usd:.2f}",
+                sub=f"{manifest.duration_s / 60:.0f} min of compute",
+            )
+        else:
+            stat("Precompute cost", "—", sub="no precomputed run")
 
     rule()
 
