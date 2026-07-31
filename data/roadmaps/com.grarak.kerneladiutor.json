@@ -1,0 +1,136 @@
+{
+  "product_id": "com.grarak.kerneladiutor",
+  "display_name": "Kernel Adiutor",
+  "package_name": "com.grarak.kerneladiutor",
+  "dataset": "",
+  "reviews": 0,
+  "avg_stars": 0.0,
+  "roadmap_source": "web",
+  "github_repo": "xxmustafacooTR/KernelManager",
+  "current_features": [
+    "It brings core kernel settings into a simple interface, so you can change and monitor values without command lines.",
+    "You can also choose an I/O scheduler to tune how storage requests are handled.",
+    "Memory tuning You can configure Kernel Samepage Merging, Low Memory Killer minfree values, and virtual memory parameters.",
+    "Flashing and recovery options The app provides flash and backup actions, plus recovery tasks like wipe when supported.",
+    "Use these operations only if you understand the process and have a recent backup.",
+    "System editors and profiles You can edit build.prop entries, manage init.d scripts, and save profiles",
+    "[APP] [4.0+] Kernel Adiutor | XDA Forums: XDA:DevDB Information Kernel Adiutor, App for all devices (see above for details).I proudly present you Kernel Adiutor! It's an application which manages your kernel parameters. It only comes with b",
+    "It depends on your kernel which features you can use.",
+    "With Kernel Adiutor you can tweak and monitor things like: CPU (Frequency, Governor) I/O Scheduler Kernel Samepage Merging Low Memory Killer (Minfree settings) Virtual Memory Flash/Backup Build prop Editor Recovery (Flash, Wipe) Init.d editor Saving Profiles and a lot more...",
+    "https://crowdin.com/project/kernel-adiutor You want to support me?",
+    "Kernel Adiutor | F-Droid - Free and Open Source Android App...: Depending on the device and kernel used, this includes: * CPU (Frequency, Governor) * I/O Scheduler * Kernel Samepage Merging * Low Memory Killer (Minfree settings) * Virtual M",
+    "Rated 4.7 out of 5.0 with over 5 million active downloads This app requires root access on your device Kernel Adiutor is a powerful app with the ability to access and modify various kernel parameters, developed by Willi Ye for the Android operating system.",
+    "Now, Kernel Adiutor is ready to connect you to your smart device’s kernel and provide you with the ability to edit different parts of it.",
+    "As mentioned, by accessing this section, you can make any changes to your smartphone and save them.",
+    "For example, you can create new profiles or back up all app and system data professionally and completely.",
+    "It is important to note that before making any changes to your device’s kernel, you should create a backup to prevent any software issues in case of problems.",
+    "You can now download the latest version from the DroidCove servers.",
+    "Some of the key capabilities offered by Kernel Adiutor-Mod include: Switching between different CPU governors like interactive, ondemand, conservative, etc.",
+    "crowdin.com/project/kernel-adiutor You want to support me?",
+    "- A Script Manager to easily create, import, edit, share and execute any properly formatted shell scripts.",
+    "- K-Lapse Support (tanish2k09) - Boeffla Sound (Lord Boeffla) with Per-channel Control - Per-channel control for Flar's sound.",
+    "* New great Voltage settings for S7: You can change all voltages at the same time, or separately.",
+    "With Kernel Adiutor you can tweak and monitor things like: and a lot more...",
+    "A Script Manager to easily create, import, edit, share and execute any properly formatted shell scripts.",
+    "K-Lapse Support (tanish2k09) Boeffla Sound (Lord Boeffla) with Per-channel Control Per-channel control for Flar's sound."
+  ],
+  "planned_items": [
+    "https://github.com/Grarak/KernelAdiutor Beta testing https://play.google.com/apps/testing/com.grarak.kerneladiutor XDA Thread http://forum.xda-developers.com/android/apps-games/app-kernel-adiutor-t2986129 Help me translating this application!",
+    "github.com/Grarak/KernelAdiutor Beta testing play.google.com/apps/testing/com.grarak.kerneladiutor XDA Thread forum.xda-developers.com/android/apps-games/app-kernel-adiutor-t2986129 Help me translating this application!"
+  ],
+  "promised_unshipped": [],
+  "evidence": [
+    {
+      "id": "web-e0d5a12f1c",
+      "source": "web_page",
+      "title": "Kernel Adiutor APK for Android Download",
+      "url": "https://apkpure.com/kernel-adiutor-root/com.grarak.kerneladiutor",
+      "snippet": "Kernel Adiutor 0.9.11.1 APK download for Android. Kernel Adiutor is a system utility app that manages and tweaks kernel parameters on rooted Android devices.",
+      "kind": "current_feature"
+    },
+    {
+      "id": "web-061fce258e",
+      "source": "web_page",
+      "title": "[APP] [4.0+] Kernel Adiutor | XDA Forums",
+      "url": "https://xdaforums.com/t/app-4-0-kernel-adiutor.2986129/",
+      "snippet": "XDA:DevDB Information Kernel Adiutor, App for all devices (see above for details).I proudly present you Kernel Adiutor! It's an application which manages your kernel parameters. It only comes with basic features which are simple to understand",
+      "kind": "current_feature"
+    },
+    {
+      "id": "web-bc277d946f",
+      "source": "web_page",
+      "title": "Kernel Adiutor APK Download for Android - Latest Version",
+      "url": "https://apkpure.net/kernel-adiutor-root/com.grarak.kerneladiutor",
+      "snippet": "Download Kernel Adiutor APK (0.9.11.1) for Android for free. Manage your kernel easily with Kernel Adiutor.",
+      "kind": "planned"
+    },
+    {
+      "id": "web-ddb232d1eb",
+      "source": "web_page",
+      "title": "Kernel Adiutor | F-Droid - Free and Open Source Android App...",
+      "url": "https://uniqx.gitlab.io/fdroid-website/packages/com.nhellfire.kerneladiutor/",
+      "snippet": "Depending on the device and kernel used, this includes: * CPU (Frequency, Governor) * I/O Scheduler * Kernel Samepage Merging * Low Memory Killer (Minfree settings) * Virtual Memory * Flash/Backup * Build prop Editor * Recovery (Flash, Wipe) * Init.d editor * Saving Profiles * and a lot more...",
+      "kind": "current_feature"
+    },
+    {
+      "id": "web-5d53443c0b",
+      "source": "web_page",
+      "title": "Kernel Adiutor 0.9.11.1 – Android Kernel Parameter... - DroidCove",
+      "url": "https://droidcove.com/kernel-adiutor-android/",
+      "snippet": "Kernel Adiutor is a powerful Android app for managing and customizing kernel parameters with root access, offering advanced control and optimization for your device.Kernel Adiutor v0.9.11.1 (ROOT)Professional Application for Managing Various Android Kernel Parameters!",
+      "kind": "current_feature"
+    },
+    {
+      "id": "web-da7542a9b5",
+      "source": "web_page",
+      "title": "Kernel Adiutor-Mod: Customize & Tweak Your Android... | Sugggest",
+      "url": "https://sugggest.com/software/kernel-adiutor-mod",
+      "snippet": "Kernel Adiutor-Mod is an open-source Android app that gives users advanced controls over customizing and adjusting their device's kernel settings.",
+      "kind": "current_feature"
+    },
+    {
+      "id": "web-a3d631ca25",
+      "source": "web_page",
+      "title": "Download Kernel Adiutor (ROOT) APKs for Android - APKMirror",
+      "url": "https://www.apkmirror.com/apk/willi-ye/kernel-adiutor/",
+      "snippet": "About Kernel Adiutor (ROOT) 0.9.11.1 REQUIRES ROOT (THIS APP WILL NOT ROOT YOUR PHONE)",
+      "kind": "planned"
+    },
+    {
+      "id": "web-fe87687296",
+      "source": "web_page",
+      "title": "SmartPack-Kernel Manager | F-Droid - Free and Open Source ...",
+      "url": "https://f-droid.org/packages/com.smartpack.kernelmanager/",
+      "snippet": "SmartPack-Kernel Manager is a heavily modified version of Kernel Adiutor developed by Willi Ye. All the credits go to the original developer, not only for his hard work on Kernel Adiutor, but also for being open to open-source community.",
+      "kind": "current_feature"
+    },
+    {
+      "id": "web-78655a2029",
+      "source": "web_page",
+      "title": "SmartPack-Kernel Manager - IzzyOnDroid F-Droid RepositoryReleases · xxmustafacooTR/KernelManager - GitHub[19/03/20] MTweaks v2.17.0 - XDA ForumsSmartPack-Kernel Manager (Pro) Latest Version v17.7 for Android",
+      "url": "https://apt.izzysoft.de/fdroid/index/apk/com.smartpack.kernelmanager",
+      "snippet": "Oct 29, 2020 · The Ultimate Tool to Manage your Kernel! SmartPack-Kernel Manager is a heavily modified version of Kernel Adiutor developed by Willi Ye. All the credits go to the original developer, not only for his hard work on Kernel Adiutor, but also for being open to open-source community. Sep 16, 2023 · About An app based on ThunderTweaks, Kernel Adiutor, MTweaks and hKTweaks for kernel management (Exynos9810 only). - Releases · xxmustafacooTR/KernelManager. Sep 12, 2017 · It is a Mod of Grarak's KernelAdiutor for compatibilize to Samsung Exynos. Thanks to Willi Ye for this great application. And many thanks to @Grouxho for his help with java, and Android Studio. * New great Voltage settings for S7: You can change all voltages at the same time, or separately. * Pie 9 compatible. Mar 27, 2023 · It is based on a heavily modified version of Kernel Adiutor, so it focuses on kernel tuning, flashing related tasks, and device level adjustments. Because these actions can affect how a phone runs, the app is mainly suitable for experienced users. What is kernel adiutor? An application which manages kernel parameters. It depends on your kernel which features you can use. With Kernel Adiutor you can tweak and monitor things like: and a lot more... (check it out, keep in mind that only supported things will appear on your phone!) Features which aren't supported by your device won't show up in the first place. What features are available in kernel adiutor? Almost all the features available in Kernel Adiutor. - Option to flash recovery zip files while running Android OS. - A simple and user-friendly Custom Controller, which is totally different to that of the official KA (Documentation). Does kernel adiutor APK require root access? Flashing and recovery options The app provides flash and backup actions, plus recovery tasks like wipe when supported. Use these operations only if you understand the process and have a recent backup. The Kernel Adiutor APK requires root access to perform any of these actions.",
+      "kind": "current_feature"
+    },
+    {
+      "id": "web-a3b6a7ea78",
+      "source": "web_page",
+      "title": "SmartPack-Kernel Manager (Pro) Latest Version v17.7 for Android",
+      "url": "https://apkpure.com/smartpack-kernel-manager-pro/com.smartpack.kernelmanager.pro",
+      "snippet": "Mar 27, 2023 · It is based on a heavily modified version of Kernel Adiutor, so it focuses on kernel tuning, flashing related tasks, and device level adjustments. Because these actions can affect how a phone runs, the app is mainly suitable for experienced users.",
+      "kind": "planned"
+    },
+    {
+      "id": "web-f8556f405e",
+      "source": "web_page",
+      "title": "[Deprecated] Kernel Adiutor-Mod [V15] [18JUL2016] | XDA Forums",
+      "url": "https://xdaforums.com/t/deprecated-kernel-adiutor-mod-v15-18jul2016.3333549/page-37",
+      "snippet": "[Development Stable][Kernel Adiutor-Mod][V15 - 26JUN2016] A modified Kernel Adiutor (Kernel Tweaking App) This project has been deprecated. New development is happening at KA-Mod Reborn. **",
+      "kind": "current_feature"
+    }
+  ],
+  "notes": " Discovered GitHub repo from web: xxmustafacooTR/KernelManager. Web roadmap: 11 sources, 25 current, 2 planned, 0 promised-unshipped signals. GitHub repo fetch failed (403).",
+  "meta": {
+    "gh_url": "https://github.com/xxmustafacooTR/KernelManager"
+  }
+}

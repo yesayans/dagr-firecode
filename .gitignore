@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Env / secrets
+.env
+.env.local
+*.env
+!.env.example
+
+# Node
+node_modules/
+.next/
+out/
+
+# Local caches (regenerable)
+data/reviews/
+data/cache/
+.hf_cache/
+
+# OS / editor
+.DS_Store
+Thumbs.db

@@ -1,0 +1,39 @@
+package_name,app_name,reviews,avg_stars,dataset,github_repo,likely_applicable,github_ok,gh_stars,gh_open_issues,gh_milestones_open,gh_milestones_total,gh_url,sample_review
+org.telegram.messenger,,22816,4.39,sealuzh/app_reviews,Telegram-FOSS-Team/Telegram-FOSS,True,False,,,,,,Awesome app
+org.ppsspp.ppsspp,,9771,4.17,sealuzh/app_reviews,hrydgard/ppsspp,True,False,,,,,,I don't know... i just want to rate this app
+com.frostwire.android,,8867,3.93,sealuzh/app_reviews,frostwire/frostwire,True,False,,,,,,Hope everything will be ok
+com.google.android.marvin.talkback,,7807,3.59,sealuzh/app_reviews,google/talkback,True,False,,,,,,???? Works only when it wants to work
+org.wikipedia,,5410,4.53,sealuzh/app_reviews,wikimedia/apps-android-wikipedia,True,True,2991,41,0,0,https://github.com/wikimedia/apps-android-wikipedia,Excellent Informative
+net.sourceforge.opencamera,,3992,4.21,sealuzh/app_reviews,almalence/OpenCamera,True,False,,,,,,Good Job 👌👍 I really love this appy 😍😍😍
+org.wordpress.android,,3200,3.67,sealuzh/app_reviews,wordpress-mobile/WordPress-Android,True,True,3146,789,0,20,https://github.com/wordpress-mobile/WordPress-Android,Awesome Super useful
+com.google.android.apps.authenticator2,,2976,3.58,sealuzh/app_reviews,google/google-authenticator-android,True,False,,,,,,Authentication Morris
+org.torproject.android,,2941,3.74,sealuzh/app_reviews,guardianproject/orbot,True,False,,,,,,The best firewall breaker!
+com.google.android.stardroid,,2861,3.89,sealuzh/app_reviews,sky-map-team/stardroid,True,False,,,,,,I love it. I get to show my kids how to look at the sky in a different way.
+net.androgames.level,,2717,4.6,sealuzh/app_reviews,avinashsivaraman/android-level,True,False,,,,,,Works great for what it is
+com.google.zxing.client.android,,2566,3.69,sealuzh/app_reviews,zxing/zxing,True,False,,,,,,Yes it work Great
+com.zegoggles.smssync,,2423,3.7,sealuzh/app_reviews,jberkel/sms-backup-plus,True,False,,,,,,Great app until.... It broke. Will only back up the received messages now. Would love a fix - this was a great app and v
+com.watabou.pixeldungeon,,2407,4.24,sealuzh/app_reviews,00-Evan/shattered-pixel-dungeon,True,False,,,,,,Does not support flipped landscape orientation.
+com.google.android.diskusage,,2343,4.71,sealuzh/app_reviews,IvanVolosyuk/diskusage,True,False,,,,,,Will not delete the files
+org.geometerplus.zlibrary.ui.android,,2294,3.92,sealuzh/app_reviews,geometer/FBReaderJ,True,False,,,,,,Love it!!! Certainly Worth your time using it.
+net.nurik.roman.muzei,,2239,3.85,sealuzh/app_reviews,romannurik/muzei,True,False,,,,,,Elegant
+com.ringdroid,,2203,3.78,sealuzh/app_reviews,google/ringdroid,True,False,,,,,,Great i love this
+org.isoron.uhabits,,1660,4.66,sealuzh/app_reviews,iSoron/uhabits,True,False,,,,,,Love it. Beautiful!
+com.fsck.k9,,1560,3.43,sealuzh/app_reviews,thunderbird/thunderbird-android,True,False,,,,,,Unified inbox messes up the default sender when replying.
+de.danoeh.antennapod,,1433,4.66,sealuzh/app_reviews,AntennaPod/AntennaPod,True,True,8042,344,0,20,https://github.com/AntennaPod/AntennaPod,Has flaws Never stops audio when I close the app  I always have to force stop. Sometimes it stops playing a podcast rand
+org.xbmc.kore,,1300,3.82,sealuzh/app_reviews,xbmc/Kore,True,False,,,,,,Almost everything you need to control media center via mobile phone. Persistent notification with media controls would b
+com.totsp.crossword.shortyz,,1238,3.8,sealuzh/app_reviews,kebernet/shortyz,True,False,,,,,,Hands down  this is the best Crossword app!! This Crossword App has an amazing user interface and of course  an unlimite
+com.duckduckgo.mobile.android,,1193,4.16,sealuzh/app_reviews,duckduckgo/Android,True,False,,,,,,Duck
+org.openintents.filemanager,,1178,4.23,sealuzh/app_reviews,openintents/filemanager,True,False,,,,,,Good app.Thanks.
+at.tomtasche.reader,,1172,3.99,sealuzh/app_reviews,andiwand/DocumentViewer,True,False,,,,,,Great We use it for as a reader for our mobile units both IPhone and Android.
+com.simplemobiletools.gallery,,1036,4.18,sealuzh/app_reviews,SimpleMobileTools/Simple-Gallery,True,False,,,,,,Fine bt less features Add some more theme option and attractive UI
+com.ichi2.anki,,890,4.39,sealuzh/app_reviews,ankidroid/Anki-Android,True,True,11464,357,0,20,https://github.com/ankidroid/Anki-Android,More than enough We can make the best home made decks easily  and learn everything especially new vocabularies efficient
+com.android.keepass,,734,4.03,sealuzh/app_reviews,bpellin/keepassdroid,True,False,,,,,,Perfect ever since editing support was added for databases hosted on GDrive. Does everything I need.
+com.termux,,593,4.61,sealuzh/app_reviews,termux/termux-app,True,True,58425,562,3,3,https://github.com/termux/termux-app,"MPV Broken after ffmpeg upgrade After upgrading ffmpeg this evening  I keep getting this message from MPV: """""""""""""""""""""""""""
+com.shatteredpixel.shatteredpixeldungeon,,400,4.52,sealuzh/app_reviews,00-Evan/shattered-pixel-dungeon,True,False,,,,,,Amazing game but... Pranked
+org.kde.kdeconnect_tp,,374,4.7,sealuzh/app_reviews,KDE/kdeconnect-android,True,False,,,,,,Very nice. Suggestion: Add mouse pointer acceleration (remote input)
+net.osmand.plus,,343,3.76,sealuzh/app_reviews,osmandapp/OsmAnd,True,True,5868,3440,5,20,https://github.com/osmandapp/OsmAnd,The ever changing interface a little puzzling ?Configure map? has disappeared from the menu with latest update  and move
+com.simplemobiletools.calendar,,250,4.32,sealuzh/app_reviews,SimpleMobileTools/Simple-Calendar,True,False,,,,,,Events in the day view are in the wrong order
+org.smssecure.smssecure,,210,4.11,sealuzh/app_reviews,SilenceIM/Silence,True,False,,,,,,Great sms app! I came from using Textra to Silence. I don't miss Textra's features at all using this. It's a beautifully
+com.owncloud.android,,177,2.51,sealuzh/app_reviews,owncloud/android,True,False,,,,,,Broke Android 7.0 Instant upload broken in Android 7.0
+org.tasks,,175,4.1,sealuzh/app_reviews,tasks/tasks,True,False,,,,,,THE BEST!! And keeps getting better !!
+org.dmfs.tasks,,115,3.86,sealuzh/app_reviews,tasks/tasks,True,False,,,,,,Very handy tool Like its functionality a lot. Only little minus is a display glitch in task view not showing the task ti

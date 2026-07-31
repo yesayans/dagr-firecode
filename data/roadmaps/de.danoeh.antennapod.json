@@ -1,0 +1,148 @@
+{
+  "product_id": "de.danoeh.antennapod",
+  "display_name": "AntennaPod",
+  "package_name": "de.danoeh.antennapod",
+  "dataset": "",
+  "reviews": 0,
+  "avg_stars": 0.0,
+  "roadmap_source": "web",
+  "github_repo": "AntennaPod/AntennaPod",
+  "current_features": [
+    "AntennaPod – The Open Podcast Player\nThe app is open-source and you can subscribe to any RSS feed.",
+    "The app is open-source and you can subscribe to any RSS feed.",
+    "Listen anywhere With AntennaPod, you can download episodes and listen anywhere.",
+    "You can even select podcasts that should be downloaded automatically.",
+    "- Past year - Past month - Contributors Join development Community forum Get help, share ideas, and connect with other users Loading discussions...",
+    "You can contribute too, with code or with comment!",
+    "Add, import and export their feeds hassle-free using the Apple Podcasts database, OPML files or simple RSS URLs.",
+    "Download, stream or queue episodes and enjoy them the way you like with adjustable playback speeds, chapter support and a sleep timer.",
+    "I got tired of podcast ads, so I switched to this open-source app\nIt's very feature-rich, and just continues to grow.",
+    "If you can't tell, I'm being incredibly sarcastic — I'm fine if podcasters throw their own ads in, but when Spotify started putting additional ads on top of it?",
+    "GitHub - AntennaPod/AntennaPod: A podcast manager for Android\nContribute to AntennaPod/AntennaPod development by creating an account on GitHub.You can use the AntennaPod Forum for discussions about the app or just podcasting in general.",
+    "Include my email address so I can be contacted Cancel Submit feedback Saved searches Use saved searches to filter your results more quickly Name Query To see all available qualifiers, see our documentation .",
+    "Share this: Share on X (Opens in new window) X Share on Facebook (Opens in new window) Facebook Email a link to a friend (Opens in new window) Email Like this: Like Loading… Related Discover more from Cartel Insider Subscribe to get the latest posts sent to your email.",
+    "She pays around $100 a gram and I just wonder what the starting price is before numerous middlemen get their share that results in $100 a gram for end users.",
+    "spp-wotlk v2026.07.23 - Changelog | Flying Phoenix: Explore insights and updates on the Trion Control Panel.",
+    "“While we undoubtedly have a small market share, we’re proud of this increase,” says @keunes, one of the volunteer project maintainers.",
+    "Dozens more include FoundMyFitness and Canadaland.",
+    "Searching for podcast episodes beyond subscriptions - Feature request - AntennaPod Forum\nJune 11, 2021 - Hey folks.",
+    "Searching for podcast episodes beyond subscriptions - Feature request - AntennaPod Forum AntennaPod Forum Searching for podcast episodes beyond subscriptions Feature request trance June 11, 2021, 6:01pm 1 Hey folks.",
+    "AntennaPod uses the iTunes or PodcastIndex database and Api to search.",
+    "tonytamsf June 15, 2021, 11:35pm 4 Good news, podcastindex.org has a search by person api.",
+    "This api would solve your use case of searching for a guest.",
+    "https://podcastindex-org.github.io/docs-api/#get-/search/byterm I could imagine implementing this 2 ways When we see a search we will do 2 searches, one by podcast keyword and one by person and merge them.",
+    "This might be confusing, it maybe better to call the person api only when there are no results from search for podcast by keyword.",
+    "Either 1 or 2, this will bring up the feature of listening to episodes without subscribing to a podcast."
+  ],
+  "planned_items": [
+    "EV Charging, Coming Soon To A Parking Lot Near You: Both specialize in the up-and-coming X-as-a-service industry, in which property owners contract for EV charging stations and other energy-related infrastructure, including power generation",
+    "Back From The Hangar: New Plane, New Posts Coming Soon\nAviation has had me running around nonstop.",
+    "Coming soon to a concert near you: poo | The Spinoff\nCelebrated metal act Devilskin were playing the second show of a nationwide tour at Union Hall when, according to this shockingly vivid Otago Daily Times story, someone shook out “a log” from their pants."
+  ],
+  "promised_unshipped": [
+    "AntennaPod - Wikipedia: AntennaPod is a free and open-source podcast aggregator app for the Android operating system.",
+    "SaaS Interviews with CEOs, Startups, Founders - Video Podcast - Apple Podcasts: June 11, 2026 - Entrepreneurship Podcast · Video · Updated Daily · What if you knew data behind the fastest growing SaaS companies today? Each morning join Nath"
+  ],
+  "evidence": [
+    {
+      "id": "web-39419eafe1",
+      "source": "interview",
+      "title": "AntennaPod - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/AntennaPod",
+      "snippet": "AntennaPod is a free and open-source podcast aggregator app for the Android operating system.",
+      "kind": "interview_signal"
+    },
+    {
+      "id": "web-3adff2d8c0",
+      "source": "interview",
+      "title": "AntennaPod – The Open Podcast Player",
+      "url": "https://antennapod.org/",
+      "snippet": "The app is open-source and you can subscribe to any RSS feed. AntennaPod is built by volunteers without commercial interest, so it respects your privacy while giving you full control.",
+      "kind": "interview_signal"
+    },
+    {
+      "id": "web-0070fb9a1a",
+      "source": "interview",
+      "title": "AntennaPod - Podcast Player | F-Droid - Free and Open Source...",
+      "url": "https://f-droid.org/packages/de.danoeh.antennapod/",
+      "snippet": "and OPML export. Join the AntennaPod community! AntennaPod is under active development by volunteers. You can contribute too, with code or with comment!",
+      "kind": "interview_signal"
+    },
+    {
+      "id": "web-521bc8fcbc",
+      "source": "interview",
+      "title": "I got tired of podcast ads, so I switched to this open-source app",
+      "url": "https://www.makeuseof.com/antennapod-on-android/",
+      "snippet": "It's very feature-rich, and just continues to grow. The AntennaPod app itself is rather small, only coming in at roughly 32MB.",
+      "kind": "interview_signal"
+    },
+    {
+      "id": "web-419364a22b",
+      "source": "interview",
+      "title": "GitHub - AntennaPod/AntennaPod: A podcast manager for Android",
+      "url": "https://github.com/AntennaPod/AntennaPod",
+      "snippet": "Contribute to AntennaPod/AntennaPod development by creating an account on GitHub.You can use the AntennaPod Forum for discussions about the app or just podcasting in general.",
+      "kind": "interview_signal"
+    },
+    {
+      "id": "web-d57e9df6f1",
+      "source": "web_page",
+      "title": "EV Charging, Coming Soon To A Parking Lot Near You",
+      "url": "https://cleantechnica.com/2025/07/01/ev-charging-coming-soon-to-a-parking-lot-near-you/",
+      "snippet": "Both specialize in the up-and-coming X-as-a-service industry, in which property owners contract for EV charging stations and other energy-related infrastructure, including power generation and energy efficiency upgrades, without paying out of pocket.",
+      "kind": "planned"
+    },
+    {
+      "id": "web-e532b2f4c6",
+      "source": "web_page",
+      "title": "Back From The Hangar: New Plane, New Posts Coming Soon",
+      "url": "https://cartelinsider.com/back-from-the-hangar-new-plane-new-posts-coming-soon/",
+      "snippet": "Aviation has had me running around nonstop. I bought a plane two states away and went out to pick it up, so the week got away from me. I’m back today and catching up on everything. Huge thanks to Sol for keeping the lights.",
+      "kind": "planned"
+    },
+    {
+      "id": "web-26da809a04",
+      "source": "web_page",
+      "title": "spp-wotlk v2026.07.23 - Changelog | Flying Phoenix",
+      "url": "https://flying-phoenix.dev/changelog/spp-wotlk/2",
+      "snippet": "Explore insights and updates on the Trion Control Panel.",
+      "kind": "current_feature"
+    },
+    {
+      "id": "web-1f5950eb5d",
+      "source": "web_page",
+      "title": "Coming soon to a concert near you: poo | The Spinoff",
+      "url": "https://thespinoff.co.nz/pop-culture/27-07-2026/coming-soon-to-a-concert-near-you-poo",
+      "snippet": "Celebrated metal act Devilskin were playing the second show of a nationwide tour at Union Hall when, according to this shockingly vivid Otago Daily Times story, someone shook out “a log” from their pants.",
+      "kind": "planned"
+    },
+    {
+      "id": "web-04e2b7efae",
+      "source": "interview",
+      "title": "SaaS Interviews with CEOs, Startups, Founders - Video Podcast - Apple Podcasts",
+      "url": "https://podcasts.apple.com/us/podcast/saas-interviews-with-ceos-startups-founders/id1023761733",
+      "snippet": "June 11, 2026 - Entrepreneurship Podcast · Video · Updated Daily · What if you knew data behind the fastest growing SaaS companies today? Each morning join Nathan Latka as he spends 15 minutes interviewing SaaS founders. You'll learn how SaaS CEO's launched ...",
+      "kind": "interview_signal"
+    },
+    {
+      "id": "web-4f0f6bad35",
+      "source": "interview",
+      "title": "AntennaPod hits 150,000 monthly active users",
+      "url": "https://podnews.net/update/antennapod-celebrate-user-numbers",
+      "snippet": "February 12, 2024 - AntennaPod, an open-source podcast app for Android, has hit 150,000 monthly active users on Google Play. As can be seen above, the app saw significant growth on Sep 26, the day that it was announced Google Podcasts is to close. Much of this growth has been in the US, according to data seen by Podnews. “While we undoubtedly have a small market share, we’re proud of this increase,” says @keunes, one of the volunteer project maintainers.",
+      "kind": "interview_signal"
+    },
+    {
+      "id": "web-8dc2a96969",
+      "source": "interview",
+      "title": "Searching for podcast episodes beyond subscriptions - Feature request - AntennaPod Forum",
+      "url": "https://forum.antennapod.org/t/searching-for-podcast-episodes-beyond-subscriptions/1039",
+      "snippet": "June 11, 2021 - Hey folks. Forgive me if this is already implemented and I’m just missing it, but I can’t seem to search for episodes beyond my already subscribed feed. One thing I relied upon with the Spotify app is that if I listen to an interview and want to find other shows or episodes with that guest, ...",
+      "kind": "interview_signal"
+    }
+  ],
+  "notes": " GitHub repo fetch failed (403). Web roadmap: 12 sources, 25 current, 3 planned, 2 promised-unshipped signals.",
+  "meta": {
+    "gh_url": "https://github.com/AntennaPod/AntennaPod"
+  }
+}

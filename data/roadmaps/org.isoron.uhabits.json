@@ -1,0 +1,125 @@
+{
+  "product_id": "org.isoron.uhabits",
+  "display_name": "Loop Habit Tracker",
+  "package_name": "org.isoron.uhabits",
+  "dataset": "",
+  "reviews": 0,
+  "avg_stars": 0.0,
+  "roadmap_source": "web",
+  "github_repo": "iSoron/uhabits",
+  "current_features": [
+    "Flexible schedules Supports not only daily habits, but also habits with more complex schedules, such as 3 times every week; one time every other week; or every other day.",
+    "Easily check, dismiss or snooze your habit directly from the notification, without opening the app.",
+    "Works offline and respects your privacy Loop doesn't require an Internet connection or online account registration.",
+    "Take your data with you If you want to further analyze your data or move it to another service, Loop allows you to export it to spreadsheets (CSV) or to a datab",
+    "* Flexible schedules: Supports both daily habits and habits with more complex schedules, such as 3 times every week; one time every other week; or every other day.",
+    "Its most used feature is the habit strength algorithm, which intelligently calculates and visualizes how ingrained a habit is, rather than just showing consecutive streaks.",
+    "Surfaced take Why It’s Useful Loop eliminates the privacy concerns associated with many cloud-based habit trackers, offering a secure, offline solution for personal goal tracking.",
+    "A power feature is its ability to export data as CSV or SQLite files, allowing advanced users to conduct their own custom analyse",
+    "Include my email address so I can be contacted Cancel Submit feedback Saved searches Use saved searches to filter your results more quickly Name Query To see all available qualifiers, see our documentation .",
+    "It has no ads, no in-app purchases, and works fully offline.",
+    "If you want habits connected to your money, goals, and tasks in one place — and the ability to manage all of it through an AI assistant ...",
+    "If you want habits connected to your money, goals, and tasks in one place — and the ability to manage all of it through an AI assistant — that’s the gap we built Lifehub to fill."
+  ],
+  "planned_items": [
+    "It is available on Android (F-Droid, Google Play) and offers a desktop version for Windows, Linux, and macOS (currently in beta/development), with future plans for iOS."
+  ],
+  "promised_unshipped": [
+    "Loop Habit Tracker: Loop Habit Tracker. Keep your life on track. With daily reminders, beautiful charts and insightful statistics, Loop Habit Tracker™ helps you create and maintain good long-term habits. Completely free and open source (GPL",
+    "It is available on Android (F-Droid, Google Play) and offers a desktop version for Windows, Linux, and macOS (currently in beta/development), with future plans for iOS."
+  ],
+  "evidence": [
+    {
+      "id": "web-0a1514bbb8",
+      "source": "interview",
+      "title": "Loop Habit Tracker - Apps on Google Play",
+      "url": "https://play.google.com/store/apps/details?id=org.isoron.uhabits&hl=en_US",
+      "snippet": "Icon image. Loop Habit Tracker. Álinson S Xavier.The app is completely ad-free, open source and it respects your privacy. Simple, beautiful and modern interface Loop has a minimalistic interface that is very easy to use and follows the material design guidelines.",
+      "kind": "interview_signal"
+    },
+    {
+      "id": "web-3c92672965",
+      "source": "interview",
+      "title": "Loop Habit Tracker | F-Droid - Free and Open Source Android App...",
+      "url": "https://f-droid.org/packages/org.isoron.uhabits/",
+      "snippet": "Loop Habit Tracker. Track your habits and long-term goals. New in version 2.3.1.Loop is a simple app that helps you create and maintain good habits, allowing you to achieve your long-term goals. Detailed graphs and statistics show you how your habits improved over time. Features.",
+      "kind": "interview_signal"
+    },
+    {
+      "id": "web-5e143e03cb",
+      "source": "interview",
+      "title": "Loop Habit Tracker",
+      "url": "https://loophabits.org/",
+      "snippet": "Loop Habit Tracker. Keep your life on track. With daily reminders, beautiful charts and insightful statistics, Loop Habit Tracker™ helps you create and maintain good long-term habits. Completely free and open source (GPLv3). Google Play F-Droid.",
+      "kind": "interview_signal"
+    },
+    {
+      "id": "web-15934edfa5",
+      "source": "web_page",
+      "title": "Loop Habit Tracker — Surfaced",
+      "url": "https://surfaced-x.pages.dev/item/loop-habit-tracker-android",
+      "snippet": "Loop Habit Tracker, developed by Soron, is a free and open-source habit tracking app primarily for Android, emphasizing simplicity, privacy, and data visualization.",
+      "kind": "planned"
+    },
+    {
+      "id": "web-186d692c20",
+      "source": "interview",
+      "title": "GitHub - iSoron/uhabits: Loop Habit Tracker, a mobile app for...",
+      "url": "https://github.com/iSoron/uhabits",
+      "snippet": "Loop Habit Tracker. release GitHub. Loop is a mobile app that helps you create and maintain good habits, allowing you to achieve your long-term goals. Detailed graphs and statistics show you how your habits improved over time. It is completely ad-free and open source.",
+      "kind": "interview_signal"
+    },
+    {
+      "id": "web-0f7fd9d5fa",
+      "source": "web_page",
+      "title": "I tested the top 5 free habit tracker apps in 2025 — here’s the one...",
+      "url": "https://techpoint.africa/guide/top-5-free-habit-tracker-apps/",
+      "snippet": "Loop Habit Tracker is an Android-only app that’s completely free and open-source. What drew me to Loop was its commitment to privacy and simplicity. It has no ads, no in-app purchases, and works fully offline. Features that stood out. Flexible Scheduling: Loop doesn’t box you into rigid daily...",
+      "kind": "current_feature"
+    },
+    {
+      "id": "web-95000bcfbe",
+      "source": "interview",
+      "title": "Loop Habit Tracker APK for Android Download - APKPure.comGitHub - kfkhalili/khabits: Loop Habit Tracker, an Android ...Loop Habit Tracker - Free APK Download for Android - AppBrainDownload Loop Habit Tracker APKs for Android - APKMirrorThe 10 Best Habit Tracker Apps in 2026 (Free & Paid, Compared)",
+      "url": "https://apkpure.com/loop-habit-tracker/org.isoron.uhabits",
+      "snippet": "Sep 14, 2025 · About Loop Habit Tracker Create good habits and track their progress over time Loop helps you create and maintain good habits, allowing you to achieve your long-term goals. Detailed charts and statistics show you how your habits improved over time. The app is completely ad-free, open source and it respects your privacy. Loop is a simple Android app that helps you create and maintain good habits, allowing you to achieve your long-term goals. Detailed graphs and statistics show you how your habits improved over time. It is completely ad-free and open source. Simple, beautiful and modern interface. 3 days ago · Get a detailed PDF report for Loop Habit Tracker with download trends, rating history, and key performance statistics — useful for competitive research or tracking your own app. Learn more About Loop Habit Tracker 2.3.1 Loop helps you create and maintain good habits, allowing you to achieve your long-term goals. Detailed charts and statistics show you how your habits improved over time. The app is completely ad-free, open source and it respects your privacy. May 18, 2026 · The best habit tracker app in 2026 depends on what surrounds your habits: if you only want a clean, free tracker, Loop Habit Tracker (Android) and Habitica (cross-platform) are hard to beat, while Streaks is the iOS gold standard for a one-time price. If you want habits connected to your money, goals, and tasks in one place — and the ability to manage all of it through an AI assistant ... What is loop habit tracker? The app has been available on Google Play February 2016. Loop helps you create and maintain good habits, allowing you to achieve your long-term goals. Detailed charts and statistics show you how your habits improved over time. Loop Habit Tracker is a free productivity app developed by Álinson S Xavier that has 5,000,000+ downloads. What is Loop app? Loop is a mobile app that helps you create and maintain good habits, allowing you to achieve your long-term goals. Detailed graphs and statistics show you how your habits improved over time. It is completely ad-free and open source. Beautiful, minimalistic and lightweight interface. How much does loop habit tracker cost? Loop Habit Tracker is FREE to download. The APK download size is 10.17 MB. The latest version available is 2.3.1. The last update was on August 13, 2025. Loop Habit Tracker requires Android 9.0+ or higher. The app has a content rating of Everyone. The app has been available on Google Play February 2016. How do I track my Habits? Create an individual reminder for each habit, at a chosen hour of the day. Easily check, dismiss or snooze your habit directly from the notification, without opening the app. Widgets Track your habits directly from your home screen, with beautiful and colorful widgets.",
+      "kind": "interview_signal"
+    },
+    {
+      "id": "web-fa077d86f0",
+      "source": "interview",
+      "title": "GitHub - kfkhalili/khabits: Loop Habit Tracker, an Android ...",
+      "url": "https://github.com/kfkhalili/khabits",
+      "snippet": "Loop is a simple Android app that helps you create and maintain good habits, allowing you to achieve your long-term goals. Detailed graphs and statistics show you how your habits improved over time. It is completely ad-free and open source. Simple, beautiful and modern interface.",
+      "kind": "interview_signal"
+    },
+    {
+      "id": "web-e50f80aa2d",
+      "source": "interview",
+      "title": "Loop Habit Tracker - Free APK Download for Android - AppBrainDownload Loop Habit Tracker APKs for Android - APKMirrorThe 10 Best Habit Tracker Apps in 2026 (Free & Paid, Compared)",
+      "url": "https://www.appbrain.com/app/loop-habit-tracker/org.isoron.uhabits",
+      "snippet": "3 days ago · Get a detailed PDF report for Loop Habit Tracker with download trends, rating history, and key performance statistics — useful for competitive research or tracking your own app. Learn more About Loop Habit Tracker 2.3.1 Loop helps you create and maintain good habits, allowing you to achieve your long-term goals. Detailed charts and statistics show you how your habits improved over time. The app is completely ad-free, open source and it respects your privacy. May 18, 2026 · The best habit tracker app in 2026 depends on what surrounds your habits: if you only want a clean, free tracker, Loop Habit Tracker (Android) and Habitica (cross-platform) are hard to beat, while Streaks is the iOS gold standard for a one-time price. If you want habits connected to your money, goals, and tasks in one place — and the ability to manage all of it through an AI assistant ... What is loop habit tracker? The app has been available on Google Play February 2016. Loop helps you create and maintain good habits, allowing you to achieve your long-term goals. Detailed charts and statistics show you how your habits improved over time. Loop Habit Tracker is a free productivity app developed by Álinson S Xavier that has 5,000,000+ downloads. What is Loop app? Loop is a mobile app that helps you create and maintain good habits, allowing you to achieve your long-term goals. Detailed graphs and statistics show you how your habits improved over time. It is completely ad-free and open source. Beautiful, minimalistic and lightweight interface. How much does loop habit tracker cost? Loop Habit Tracker is FREE to download. The APK download size is 10.17 MB. The latest version available is 2.3.1. The last update was on August 13, 2025. Loop Habit Tracker requires Android 9.0+ or higher. The app has a content rating of Everyone. The app has been available on Google Play February 2016. How do I track my Habits? Create an individual reminder for each habit, at a chosen hour of the day. Easily check, dismiss or snooze your habit directly from the notification, without opening the app. Widgets Track your habits directly from your home screen, with beautiful and colorful widgets.",
+      "kind": "interview_signal"
+    },
+    {
+      "id": "web-c5f57ed496",
+      "source": "interview",
+      "title": "Download Loop Habit Tracker APKs for Android - APKMirror",
+      "url": "https://www.apkmirror.com/apk/alinson-s-xavier/loop-habit-tracker/",
+      "snippet": "About Loop Habit Tracker 2.3.1 Loop helps you create and maintain good habits, allowing you to achieve your long-term goals. Detailed charts and statistics show you how your habits improved over time. The app is completely ad-free, open source and it respects your privacy.",
+      "kind": "interview_signal"
+    },
+    {
+      "id": "web-e9df7c1a70",
+      "source": "web_page",
+      "title": "The 10 Best Habit Tracker Apps in 2026 (Free & Paid, Compared)",
+      "url": "https://applifehub.com/blog/best-habit-tracker-apps",
+      "snippet": "May 18, 2026 · The best habit tracker app in 2026 depends on what surrounds your habits: if you only want a clean, free tracker, Loop Habit Tracker (Android) and Habitica (cross-platform) are hard to beat, while Streaks is the iOS gold standard for a one-time price. If you want habits connected to your money, goals, and tasks in one place — and the ability to manage all of it through an AI assistant ...",
+      "kind": "current_feature"
+    }
+  ],
+  "notes": " GitHub repo fetch failed (403). Web roadmap: 11 sources, 12 current, 1 planned, 2 promised-unshipped signals. GitHub repo fetch failed (403).",
+  "meta": {
+    "gh_url": "https://github.com/iSoron/uhabits"
+  }
+}
