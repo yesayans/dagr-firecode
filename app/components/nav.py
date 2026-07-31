@@ -81,12 +81,22 @@ def render_sidebar_nav(pages: NavPages, current: StreamlitPage) -> None:
     with st.sidebar:
         st.markdown("### AI PM Assistant")
 
-        # Always available, and always clears the selection: the catalogue is a
-        # level up, so carrying `?app=` there would describe a state it is not in.
-        _nav_item(
-            pages.catalogue, "← All applications", current,
-            selection=Selection(None, None),
-        )
+        showed_anything = False
+
+        # An "up" action, not a sibling in a set - so it is *omitted* on the
+        # catalogue rather than shown disabled. A disabled item earns its place
+        # only when it answers "which of these am I on?", which is why the view
+        # items below keep that treatment; here there is nowhere up to go and
+        # nothing to mark, so a greyed-out control would be pure noise.
+        #
+        # Clears the selection: the catalogue is a level up, so carrying `?app=`
+        # there would describe a state it is not in.
+        if not _is_current(pages.catalogue, current):
+            _nav_item(
+                pages.catalogue, "← All applications", current,
+                selection=Selection(None, None),
+            )
+            showed_anything = True
 
         if selection.is_set:
             result = selected_result()
@@ -103,8 +113,12 @@ def render_sidebar_nav(pages: NavPages, current: StreamlitPage) -> None:
                 with item:
                     _nav_item(page, label, current, selection=selection)
                 del spacer
+            showed_anything = True
 
-        st.markdown('<hr class="aipm-rule"/>', unsafe_allow_html=True)
+        # Only a separator if there is something above it to separate from - on
+        # the catalogue this block is the whole nav.
+        if showed_anything:
+            st.markdown('<hr class="aipm-rule"/>', unsafe_allow_html=True)
         _nav_item(
             pages.upload, "Upload dataset", current, selection=Selection(None, None)
         )
