@@ -23,7 +23,6 @@ def extract_cluster_keywords(
     *,
     top_n: int = 10,
     ngram_range: tuple[int, int] = (1, 2),
-    min_df: int = 2,
 ) -> dict[int, list[str]]:
     """Return the most distinguishing terms per cluster.
 
@@ -43,10 +42,13 @@ def extract_cluster_keywords(
             stop_words="english",
             strip_accents="unicode",
             lowercase=True,
-            # min_df counts *clusters* here, and a term appearing in one cluster
-            # is exactly what we are looking for, so keep it at 1 when there are
-            # few clusters.
-            min_df=1 if len(labels) < min_df * 2 else min_df,
+            # Always 1, and it is not configurable on purpose. Each "document"
+            # here is a whole cluster, so document frequency counts *clusters* -
+            # `min_df=2` would require a term to appear in two or more of them
+            # and would discard precisely the single-cluster terms that
+            # distinguish a theme. Rare-term noise is handled by the idf weight
+            # and the top-n cut below, not by pruning the vocabulary.
+            min_df=1,
             max_features=40_000,
         )
         counts = vectorizer.fit_transform(joined).toarray().astype(np.float64)

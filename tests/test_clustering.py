@@ -130,6 +130,29 @@ class TestKeywords:
     def test_empty_input(self):
         assert extract_cluster_keywords([], {}) == {}
 
+    def test_single_cluster_terms_survive(self):
+        """The most distinguishing terms appear in exactly ONE cluster.
+
+        Each "document" is a whole cluster here, so a document-frequency
+        floor above 1 would require a term in two or more clusters and drop
+        precisely the terms that identify a theme. That produced clusters
+        with no keywords at all once a run had four or more of them.
+        """
+        texts = (
+            ["gps drift ruins my recorded distance"] * 5
+            + ["the subscription renewed without any warning"] * 5
+            + ["notes vanish before they finish syncing"] * 5
+            + ["support never answered my ticket"] * 5
+        )
+        clusters = {i: list(range(i * 5, i * 5 + 5)) for i in range(4)}
+        result = extract_cluster_keywords(texts, clusters)
+
+        assert all(result[label] for label in clusters), (
+            f"cluster(s) left with no keywords: {result}"
+        )
+        assert any("gps" in k for k in result[0])
+        assert any("subscription" in k for k in result[1])
+
 
 class TestRepresentatives:
     def test_returns_all_when_cluster_is_small(self):
