@@ -1,0 +1,16 @@
+# Surfaces and ink come from the data-viz palette so Streamlit chrome and the
+# Plotly canvas agree. Changing these means re-running the palette validator
+# against the new surface.
+[theme]
+base = "light"
+primaryColor = "#2a78d6"
+backgroundColor = "#f9f9f7"          # page plane
+secondaryBackgroundColor = "#fcfcfb" # chart / card surface
+textColor = "#0b0b0b"
+font = "sans serif"
+
+[server]
+maxUploadSize = 400
+
+[browser]
+gatherUsageStats = false

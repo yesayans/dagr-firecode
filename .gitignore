@@ -1,0 +1,32 @@
+# Secrets - never commit
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.idea/
+.vscode/
+.DS_Store
+
+# Data. The raw CSVs (~94 MB) and every derived artefact stay out of the repo,
+# including the precomputed database - it is ~20 MB and regenerates with one
+# command. If you need the demo to survive a dead network on a machine that has
+# never run the pipeline, commit `data/aipm.db` deliberately rather than relying
+# on a fresh clone having it.
+data/raw/*.csv
+data/processed/
+data/cache/
+data/runs/
+data/aipm.db
+data/aipm.db-*
+*.db-wal
+*.db-shm

@@ -1,0 +1,27 @@
+{
+  "strategy_name": "recency-first",
+  "n_apps": 6,
+  "min_apps": 5,
+  "max_apps": 10,
+
+  "weights": {
+    "volume": 0.20,
+    "quality": 0.25,
+    "recency": 0.35,
+    "coverage": 0.10,
+    "engagement": 0.10
+  },
+
+  "min_reviews": 1000,
+  "min_star_levels": 3,
+  "min_share_substantive": 0.15,
+  "min_months_covered": 6,
+  "recency_window_days": 365,
+  "min_share_recent": 0.20,
+
+  "max_per_category": 1,
+  "prefer_distinct_categories": true,
+
+  "include_app_ids": [],
+  "exclude_app_ids": []
+}
