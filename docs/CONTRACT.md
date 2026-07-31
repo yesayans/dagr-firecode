@@ -166,6 +166,38 @@ Returns `App[]` from the catalog (seeded from `data/discovery/candidates_sealuzh
 Request: `{ "app_name": "AntennaPod", "package_name": "de.danoeh.antennapod", "github_repo": null, "refresh": false }`
 Response: `App`.
 
+### `POST /apps/custom` (multipart)
+Closed-source / bring-your-own-data path.
+
+Form fields:
+- `app_name` (required)
+- `package_name` (optional; defaults to `custom.{slug}`)
+- `reviews` (required CSV file) — flexible columns auto-detected:
+  text (`review_text`/`review`/`text`/`body`/`content`/`comment`),
+  rating (`rating`/`star`/`stars`/`score`),
+  date (`created_at`/`date`/`review_date`/`at`/`time`)
+- `roadmap_urls` (optional) — whitespace/comma-separated changelog/roadmap URLs
+- `roadmap_text` (optional) — pasted feature list (one item per line or blank-line paragraph)
+- `max_reviews` (optional, default 2000)
+
+External roadmap inputs set `roadmap_source` to `web` when any items are extracted.
+Reviews are cached with provenance `csv_upload`. Analysis is queued immediately.
+
+Response:
+```json
+{
+  "app": { "...App" },
+  "job_id": "<uuid>",
+  "status": "queued",
+  "column_mapping": { "review_text": "Review", "rating": "Stars", "created_at": null },
+  "warnings": ["no date column detected; created_at left empty"],
+  "rows_kept": 120,
+  "rows_raw": 200,
+  "roadmap_source": "web",
+  "roadmap_item_count": 8
+}
+```
+
 ### `POST /analyze`
 Request: `{ "app_id": "<uuid>", "max_reviews": 2000, "force": false }`
 Response: `{ "job_id": "<uuid>", "status": "queued" }`
@@ -271,7 +303,7 @@ interface Job {
     embedding_backend: string;
     elapsed_s: number;
     degraded: string[];          // human-readable notes, e.g. "no GITHUB_TOKEN"
-    review_provenance: "hf" | "parquet_cache" | "fixture";
+    review_provenance: "hf" | "parquet_cache" | "fixture" | "csv_upload";
     reviews_total: number;         // all loaded reviews
     reviews_need_bearing: number;  // clustered after per-review need filter
     review_window_start: string; // ISO-8601

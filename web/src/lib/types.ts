@@ -114,7 +114,7 @@ export interface Job {
     embedding_backend: string;
     elapsed_s: number;
     degraded: string[];
-    review_provenance: "hf" | "parquet_cache" | "fixture";
+    review_provenance: "hf" | "parquet_cache" | "fixture" | "csv_upload";
     review_window_start: string;
     review_window_end: string;
     reference_date: string;

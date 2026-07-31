@@ -99,11 +99,14 @@ class AnalysisPipeline:
             )
 
             # --- resolve roadmap ---
+            meta = app.get("metadata") or {}
             resolved = self.resolver.resolve(
                 app_name=app["display_name"],
                 package_name=app["package_name"],
                 github_repo=app.get("github_repo"),
-                refresh=bool((app.get("metadata") or {}).get("force_roadmap_refresh")),
+                refresh=bool(meta.get("force_roadmap_refresh")),
+                external_roadmap_urls=list(meta.get("external_roadmap_urls") or []),
+                external_roadmap_text=meta.get("external_roadmap_text") or "",
             )
             roadmap_source = resolved.roadmap_source
             degraded.extend(resolved.degraded)

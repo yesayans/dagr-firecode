@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 import logging
+import re
+import uuid
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
+from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from src.config import get_settings
+from src.data_ingestion import ReviewScraper
 from src.pipeline import AnalysisPipeline, config_hash
-from src.resolver import RoadmapResolver
+from src.resolver import RoadmapResolver, _split_urls
 from src.store import get_store, load_catalog, reset_store_singleton
 
 logger = logging.getLogger("dagr")
@@ -112,6 +115,117 @@ def list_apps(
 ) -> list[dict[str, Any]]:
     store = get_store()
     return [_public_app(a) for a in store.list_apps(q=q, limit=limit)]  # type: ignore[misc]
+
+
+def _slug_package(app_name: str, package_name: str | None) -> str:
+    pkg = (package_name or "").strip()
+    if pkg:
+        return pkg
+    slug = re.sub(r"[^a-z0-9]+", ".", app_name.lower()).strip(".")
+    slug = slug or "app"
+    return f"custom.{slug}"
+
+
+@app.post("/apps/custom")
+async def create_custom_app(
+    background: BackgroundTasks,
+    app_name: str = Form(...),
+    package_name: str | None = Form(default=None),
+    roadmap_urls: str | None = Form(default=None),
+    roadmap_text: str | None = Form(default=None),
+    max_reviews: int = Form(default=2000),
+    reviews: UploadFile = File(...),
+) -> dict[str, Any]:
+    """
+    Upload a review CSV (+ optional external roadmap URLs/text), upsert the app,
+    and queue analysis. Closed-source friendly path.
+    """
+    settings = get_settings()
+    store = get_store(settings)
+    name = (app_name or "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="app_name is required")
+    if max_reviews < 10 or max_reviews > 5000:
+        raise HTTPException(status_code=400, detail="max_reviews must be 10–5000")
+
+    pkg = _slug_package(name, package_name)
+    raw = await reviews.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="reviews CSV is empty")
+
+    scraper = ReviewScraper(settings)
+    try:
+        ingested = scraper.ingest_csv(
+            pkg, raw, max_reviews=max_reviews, filename=reviews.filename
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    urls = _split_urls([roadmap_urls or ""])
+    paste = (roadmap_text or "").strip()
+    resolver = RoadmapResolver(settings)
+    result = resolver.resolve(
+        app_name=name,
+        package_name=pkg,
+        github_repo=None,
+        refresh=True,
+        external_roadmap_urls=urls,
+        external_roadmap_text=paste,
+    )
+
+    avg = float(ingested.df["rating"].mean()) if not ingested.df.empty else None
+    sample = None
+    if not ingested.df.empty:
+        sample = str(ingested.df.iloc[0]["review_text"])[:280]
+
+    app_row = store.upsert_app(
+        {
+            "package_name": pkg,
+            "display_name": name,
+            "dataset": "csv_upload",
+            "review_count": ingested.rows_kept,
+            "avg_stars": round(avg, 2) if avg is not None else None,
+            "github_repo": None,
+            "roadmap_source": result.roadmap_source,
+            "roadmap_item_count": len(result.roadmap_items),
+            "sample_review": sample,
+            "metadata": {
+                "roadmap_item_count": len(result.roadmap_items),
+                "degraded": result.degraded,
+                "notes": result.notes,
+                "external_roadmap_urls": urls,
+                "external_roadmap_text": paste,
+                "force_roadmap_refresh": True,
+                "csv_column_mapping": ingested.column_mapping,
+                "csv_warnings": ingested.warnings,
+                "review_provenance": "csv_upload",
+            },
+        }
+    )
+
+    ch = config_hash(app_row["id"], max_reviews, settings)
+    # Force a fresh run for uploads
+    job = store.create_job(
+        {
+            "app_id": app_row["id"],
+            "status": "queued",
+            "stage": "queued",
+            "progress": 0,
+            "config_hash": ch + f":csv:{uuid.uuid4().hex[:8]}",
+        }
+    )
+    background.add_task(_run_job, job["id"], app_row, max_reviews)
+    return {
+        "app": _public_app(app_row),
+        "job_id": job["id"],
+        "status": "queued",
+        "column_mapping": ingested.column_mapping,
+        "warnings": ingested.warnings,
+        "rows_kept": ingested.rows_kept,
+        "rows_raw": ingested.rows_raw,
+        "roadmap_source": result.roadmap_source,
+        "roadmap_item_count": len(result.roadmap_items),
+    }
 
 
 @app.post("/apps/resolve")

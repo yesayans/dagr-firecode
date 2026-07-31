@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { resolveApp, searchApps, startAnalyze } from "@/lib/api";
 import type { App } from "@/lib/types";
+import { CustomAnalyzeForm } from "@/components/CustomAnalyzeForm";
 import { RoadmapSourceBadge } from "@/components/RoadmapSourceBadge";
 
 export default function HomePage() {
@@ -311,6 +312,20 @@ export default function HomePage() {
             <span className="text-zinc-300">none</span> modes.
           </div>
         )}
+      </section>
+
+      <section
+        className="animate-fade-up mt-14"
+        style={{ animationDelay: "140ms" }}
+      >
+        <div className="mb-4 flex items-center gap-3">
+          <div className="h-px flex-1 bg-white/10" />
+          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+            or bring your own data
+          </p>
+          <div className="h-px flex-1 bg-white/10" />
+        </div>
+        <CustomAnalyzeForm />
       </section>
     </div>
   );

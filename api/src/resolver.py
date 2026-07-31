@@ -50,9 +50,23 @@ class RoadmapResolver:
         package_name: str,
         github_repo: str | None = None,
         refresh: bool = False,
+        *,
+        external_roadmap_urls: list[str] | None = None,
+        external_roadmap_text: str | None = None,
     ) -> ResolveResult:
         degraded: list[str] = []
         notes_parts: list[str] = []
+
+        # User-supplied roadmap (closed-source / non-GitHub) wins over discovery.
+        external = self._resolve_external(
+            app_name=app_name,
+            package_name=package_name,
+            urls=external_roadmap_urls or [],
+            text=external_roadmap_text or "",
+            degraded=degraded,
+        )
+        if external is not None:
+            return external
 
         # Fast-path repo guess
         repo = github_repo or self._guess_repo(package_name, app_name, degraded)
@@ -167,6 +181,55 @@ class RoadmapResolver:
             roadmap_items=_empty_items(),
             degraded=degraded,
             notes="; ".join(notes_parts) or "no roadmap",
+        )
+
+    def _resolve_external(
+        self,
+        *,
+        app_name: str,
+        package_name: str,
+        urls: list[str],
+        text: str,
+        degraded: list[str],
+    ) -> ResolveResult | None:
+        """Build roadmap items from user URLs and/or pasted text → roadmap_source=web."""
+        cleaned_urls = _split_urls(urls if isinstance(urls, list) else [str(urls)])
+        paste_items = _paste_text_to_items(text)
+        page_items = _empty_items()
+        if cleaned_urls:
+            pages, web_deg = self.web.fetch_roadmap_pages(
+                cleaned_urls,
+                product_name=app_name,
+                package_name=package_name,
+                github_repo=None,
+            )
+            degraded.extend(web_deg)
+            page_items = self._pages_to_items(pages, app_name, package_name)
+            if page_items.empty:
+                degraded.append(
+                    "external roadmap URLs yielded no extractable text; "
+                    "using pasted items if any"
+                )
+
+        frames = [f for f in (page_items, paste_items) if f is not None and not f.empty]
+        if not frames:
+            if cleaned_urls or (text or "").strip():
+                degraded.append("external roadmap provided but produced zero items")
+            return None
+
+        items = pd.concat(frames, ignore_index=True)
+        notes = []
+        if cleaned_urls:
+            notes.append(f"{len(cleaned_urls)} user URL(s)")
+        if not paste_items.empty:
+            notes.append(f"{len(paste_items)} pasted item(s)")
+        return ResolveResult(
+            roadmap_source="web",
+            github_repo=None,
+            web_urls=cleaned_urls or None,
+            roadmap_items=items,
+            degraded=degraded,
+            notes="external roadmap: " + ", ".join(notes),
         )
 
     def _guess_repo(
@@ -394,6 +457,56 @@ def _empty_items() -> pd.DataFrame:
             "source",
         ]
     )
+
+
+def _split_urls(values: list[str]) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw in values:
+        for part in re.split(r"[\s,]+", (raw or "").strip()):
+            part = part.strip()
+            if not part:
+                continue
+            if not re.match(r"^https?://", part, re.I):
+                continue
+            if part in seen:
+                continue
+            seen.add(part)
+            out.append(part)
+    return out
+
+
+def _paste_text_to_items(text: str) -> pd.DataFrame:
+    """One roadmap item per non-empty line (or blank-line-separated paragraph)."""
+    blob = (text or "").strip()
+    if not blob:
+        return _empty_items()
+    # Prefer paragraphs when blank lines present; else one item per line.
+    if "\n\n" in blob:
+        chunks = [c.strip() for c in re.split(r"\n\s*\n", blob) if c.strip()]
+    else:
+        chunks = [c.strip() for c in blob.splitlines() if c.strip()]
+    rows = []
+    for i, chunk in enumerate(chunks):
+        if len(chunk) < 8:
+            continue
+        rows.append(
+            {
+                "item_id": f"paste-{i}",
+                "text": chunk[:1000],
+                "labels": "",
+                "milestone_title": None,
+                "state": "open",
+                "age_days": None,
+                "closed_at": None,
+                "url": "",
+                "updated_at": None,
+                "created_at": None,
+                "kind": "planned",
+                "source": "web",
+            }
+        )
+    return pd.DataFrame(rows) if rows else _empty_items()
 
 
 def main() -> None:

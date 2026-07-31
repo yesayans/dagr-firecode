@@ -20,7 +20,27 @@ from src.config import Settings, get_settings
 
 logger = logging.getLogger(__name__)
 
-ReviewProvenance = Literal["hf", "parquet_cache", "fixture"]
+ReviewProvenance = Literal["hf", "parquet_cache", "fixture", "csv_upload"]
+
+TEXT_COLUMN_ALIASES = (
+    "review_text",
+    "review",
+    "text",
+    "body",
+    "content",
+    "comment",
+    "comments",
+)
+RATING_COLUMN_ALIASES = ("rating", "star", "stars", "score", "star_rating")
+DATE_COLUMN_ALIASES = (
+    "created_at",
+    "date",
+    "review_date",
+    "at",
+    "time",
+    "timestamp",
+    "submitted_at",
+)
 
 
 @dataclass
@@ -28,6 +48,15 @@ class ReviewFetchResult:
     df: pd.DataFrame
     degraded: list[str]
     provenance: ReviewProvenance
+
+
+@dataclass
+class CsvIngestResult:
+    df: pd.DataFrame
+    column_mapping: dict[str, str | None]
+    warnings: list[str]
+    rows_raw: int
+    rows_kept: int
 
 UA = "dagr/1.0 (+https://github.com/silent-stakeholder)"
 
@@ -221,12 +250,45 @@ class ReviewScraper:
             try:
                 meta = json.loads(meta_p.read_text(encoding="utf-8"))
                 prov = meta.get("provenance")
-                if prov in ("hf", "parquet_cache", "fixture"):
+                if prov in ("hf", "parquet_cache", "fixture", "csv_upload"):
                     return prov  # type: ignore[return-value]
             except Exception:
                 pass
         # Legacy cache without sidecar — treat as real parquet cache, never fixture
         return "parquet_cache"
+
+    def ingest_csv(
+        self,
+        package_name: str,
+        file_bytes: bytes,
+        *,
+        max_reviews: int | None = None,
+        filename: str | None = None,
+    ) -> CsvIngestResult:
+        """Parse a flexible review CSV, filter/dedupe, and write the parquet cache."""
+        max_reviews = max_reviews or self.settings.max_reviews
+        parsed = parse_reviews_csv(file_bytes, filename=filename)
+        if parsed.df.empty:
+            raise ValueError(
+                "No usable reviews after filtering. Need a text column with "
+                "reviews of at least 10 words (5-star reviews are dropped)."
+            )
+        filtered = self._filter_dedupe(parsed.df, package_name, max_reviews)
+        if filtered.empty:
+            raise ValueError(
+                "No reviews remained after dropping short texts, 5-star ratings, "
+                "and duplicates."
+            )
+        self._write_cache(package_name, filtered, provenance="csv_upload")
+        warnings = list(parsed.warnings)
+        warnings.append(f"kept {len(filtered)} of {parsed.rows_raw} uploaded rows")
+        return CsvIngestResult(
+            df=filtered,
+            column_mapping=parsed.column_mapping,
+            warnings=warnings,
+            rows_raw=parsed.rows_raw,
+            rows_kept=len(filtered),
+        )
 
     def _empty(self) -> pd.DataFrame:
         return pd.DataFrame(
@@ -359,6 +421,90 @@ class ReviewScraper:
             if len(records) >= max_reviews:
                 break
         return pd.DataFrame(records)
+
+
+def _normalize_header(name: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", (name or "").strip().lower()).strip("_")
+
+
+def _pick_column(columns: list[str], aliases: tuple[str, ...]) -> str | None:
+    norm_map = {_normalize_header(c): c for c in columns}
+    for alias in aliases:
+        if alias in norm_map:
+            return norm_map[alias]
+    for alias in aliases:
+        for norm, original in norm_map.items():
+            if alias in norm:
+                return original
+    return None
+
+
+def parse_reviews_csv(
+    file_bytes: bytes, *, filename: str | None = None
+) -> CsvIngestResult:
+    """
+    Flexible CSV → raw frame with review_text / rating / created_at columns
+    (pre-filter). Raises ValueError when no text column can be detected.
+    """
+    if not file_bytes or not file_bytes.strip():
+        raise ValueError("CSV file is empty")
+
+    warnings: list[str] = []
+    last_err: Exception | None = None
+    raw: pd.DataFrame | None = None
+    for enc in ("utf-8-sig", "utf-8", "latin-1"):
+        try:
+            from io import BytesIO
+
+            raw = pd.read_csv(BytesIO(file_bytes), dtype=str, encoding=enc)
+            break
+        except Exception as e:
+            last_err = e
+            continue
+    if raw is None:
+        raise ValueError(f"Could not parse CSV: {last_err}")
+
+    if raw.empty:
+        raise ValueError("CSV has no data rows")
+
+    text_col = _pick_column(list(raw.columns), TEXT_COLUMN_ALIASES)
+    if text_col is None:
+        raise ValueError(
+            "Could not detect a review text column. Expected one of: "
+            + ", ".join(TEXT_COLUMN_ALIASES)
+        )
+    rating_col = _pick_column(list(raw.columns), RATING_COLUMN_ALIASES)
+    date_col = _pick_column(list(raw.columns), DATE_COLUMN_ALIASES)
+
+    mapping: dict[str, str | None] = {
+        "review_text": text_col,
+        "rating": rating_col,
+        "created_at": date_col,
+    }
+    if rating_col is None:
+        warnings.append("no rating column detected; defaulting ratings to 3.0")
+    if date_col is None:
+        warnings.append("no date column detected; created_at left empty")
+    if filename:
+        warnings.append(f"parsed {filename}")
+
+    out = pd.DataFrame(
+        {
+            "review_text": raw[text_col].fillna("").astype(str),
+            "rating": raw[rating_col] if rating_col else None,
+            "created_at": raw[date_col] if date_col else None,
+            "review": raw[text_col].fillna("").astype(str),
+            "star": raw[rating_col] if rating_col else None,
+            "date": raw[date_col] if date_col else None,
+        }
+    )
+    return CsvIngestResult(
+        df=out,
+        column_mapping=mapping,
+        warnings=warnings,
+        rows_raw=len(out),
+        rows_kept=len(out),
+    )
 
 
 class GitHubScraper:

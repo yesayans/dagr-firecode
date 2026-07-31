@@ -165,6 +165,97 @@ export async function resolveApp(
   );
 }
 
+export interface CustomAppResponse {
+  app: App;
+  job_id: string;
+  status: "queued" | "completed";
+  column_mapping: {
+    review_text: string | null;
+    rating: string | null;
+    created_at: string | null;
+  };
+  warnings: string[];
+  rows_kept: number;
+  rows_raw: number;
+  roadmap_source: App["roadmap_source"];
+  roadmap_item_count: number;
+}
+
+export async function createCustomApp(input: {
+  appName: string;
+  packageName?: string;
+  roadmapUrls?: string;
+  roadmapText?: string;
+  maxReviews?: number;
+  reviewsFile: File;
+}): Promise<CustomAppResponse> {
+  if (FORCE_MOCK || getDataMode() === "mock") {
+    setMode("mock");
+    await delay(400);
+    const id = `custom-mock-${Date.now()}`;
+    const jobId = `mock-${id}`;
+    const app: App = {
+      id,
+      package_name: input.packageName || `custom.${input.appName.toLowerCase().replace(/\W+/g, ".")}`,
+      display_name: input.appName,
+      review_count: 42,
+      avg_stars: 2.8,
+      github_repo: null,
+      roadmap_source: input.roadmapText || input.roadmapUrls ? "web" : "none",
+      roadmap_item_count: input.roadmapText ? 4 : 0,
+      sample_review: "Mock uploaded review for custom analyze.",
+    };
+    const template = jobForApp("app-none-instagram");
+    mockRuns.set(jobId, {
+      job: {
+        ...template,
+        id: jobId,
+        app,
+        roadmap_source: app.roadmap_source,
+        created_at: new Date().toISOString(),
+      },
+      startedAt: Date.now(),
+    });
+    return {
+      app,
+      job_id: jobId,
+      status: "queued",
+      column_mapping: {
+        review_text: "review",
+        rating: "stars",
+        created_at: "date",
+      },
+      warnings: ["mock mode — CSV not parsed"],
+      rows_kept: 42,
+      rows_raw: 50,
+      roadmap_source: app.roadmap_source,
+      roadmap_item_count: app.roadmap_item_count,
+    };
+  }
+
+  const form = new FormData();
+  form.append("app_name", input.appName);
+  if (input.packageName) form.append("package_name", input.packageName);
+  if (input.roadmapUrls) form.append("roadmap_urls", input.roadmapUrls);
+  if (input.roadmapText) form.append("roadmap_text", input.roadmapText);
+  if (input.maxReviews != null) {
+    form.append("max_reviews", String(input.maxReviews));
+  }
+  form.append("reviews", input.reviewsFile);
+
+  const res = await fetch(`${BASE_URL}/apps/custom`, {
+    method: "POST",
+    body: form,
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(body || `API ${res.status} for /apps/custom`);
+  }
+  setMode("live");
+  return res.json() as Promise<CustomAppResponse>;
+}
+
 export async function startAnalyze(
   body: AnalyzeRequest,
 ): Promise<AnalyzeResponse> {

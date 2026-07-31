@@ -51,7 +51,10 @@ def seeded(tmp_path, monkeypatch):
         }
     )
 
+    get_settings.cache_clear()
     settings = get_settings()
+    # .env may still set OPENROUTER_API_KEY; force offline LLM for this suite
+    object.__setattr__(settings, "openrouter_api_key", None)
     pipe = AnalysisPipeline(store, settings)
     pipe.reviews.cache_dir = reviews
     pipe.resolver.cache_dir = roadmaps
