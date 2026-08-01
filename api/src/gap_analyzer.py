@@ -178,11 +178,19 @@ def compute_confidence(
     max_cluster_size: int,
     best_similarity: float | None,
     cohesion: float,
-    mean_rating: float,
-    rating_spread: float,
+    mean_rating: float | None,
+    rating_spread: float | None,
     mode: str,
 ) -> tuple[float, dict[str, float], dict[str, float]]:
-    """Return (deterministic_confidence, components, weights)."""
+    """Return (deterministic_confidence, components, weights).
+
+    `mean_rating` / `rating_spread` may be `None` when the review source carried
+    no ratings. Those components are then omitted and the remaining weights are
+    renormalised, rather than scored from a fabricated neutral rating.
+
+    The returned `weights` always match the returned `components`, which is what
+    keeps `reconstruct_confidence` exact.
+    """
     weights = dict(WEIGHTS_NONE if mode == "none" else WEIGHTS_ROADMAP)
     volume = float(np.log1p(cluster_size) / np.log1p(max(max_cluster_size, 1)))
     if mode == "none":
@@ -191,15 +199,28 @@ def compute_confidence(
         sim = 0.0 if best_similarity is None else float(best_similarity)
         novelty = 1.0 - sim
     consistency = float(np.clip(cohesion, 0.0, 1.0))
-    severity = float(np.clip((5.0 - mean_rating) / 4.0, 0.0, 1.0))
-    spread = float(np.clip(rating_spread, 0.0, 1.0))
     components = {
         "volume": volume,
         "novelty": novelty,
         "consistency": consistency,
-        "severity": severity,
-        "spread": spread,
     }
+
+    # Severity and spread are only meaningful when ratings exist. A source with
+    # no rating column used to default every review to 3.0, which pinned
+    # severity at 0.50 and spread at 0.00 for every cluster - 35% of the weight
+    # frozen, leaving confidence a pure function of cluster size. Instead, drop
+    # the unavailable components and renormalise the remaining weights, so the
+    # score still spans 0-100 and reflects only what was actually measured.
+    if mean_rating is not None:
+        components["severity"] = float(np.clip((5.0 - mean_rating) / 4.0, 0.0, 1.0))
+    if rating_spread is not None:
+        components["spread"] = float(np.clip(rating_spread, 0.0, 1.0))
+
+    weights = {k: v for k, v in weights.items() if k in components}
+    total_weight = sum(weights.values())
+    if total_weight > 0:
+        weights = {k: round(v / total_weight, 6) for k, v in weights.items()}
+
     score = 100.0 * sum(weights[k] * components[k] for k in weights)
     return round(score, 2), components, weights
 
