@@ -56,7 +56,8 @@ class NullCalibration:
 
 
 def roadmap_content_hash(texts: list[str]) -> str:
-    h = hashlib.sha1()
+    # Cache key fingerprint only — not used for authentication or integrity of secrets.
+    h = hashlib.sha1(usedforsecurity=False)
     for t in texts:
         h.update(str(t).encode("utf-8", errors="ignore"))
         h.update(b"\0")

@@ -151,7 +151,10 @@ PLAN_HINTS = re.compile(
 
 def _stable_review_id(package_name: str, text: str, rating: Any, created_at: Any) -> str:
     raw = f"{package_name}|{rating}|{created_at}|{text.strip().lower()}"
-    return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
+    # Non-cryptographic stable id for dedupe keys (not a security boundary).
+    return hashlib.sha1(
+        raw.encode("utf-8"), usedforsecurity=False
+    ).hexdigest()[:16]
 
 
 def _norm_text(text: str) -> str:
@@ -323,12 +326,15 @@ class ReviewScraper:
             ) from e
 
         ds_name = self.settings.hf_dataset
+        revision = self.settings.hf_dataset_revision
         # Streaming filter to avoid full download when possible. Cap the scan so
         # a rare package cannot walk the entire corpus unbounded.
         target = max(max_reviews * 4, max_reviews)
         max_scan = 400_000
         try:
-            ds = load_dataset(ds_name, split="train", streaming=True)
+            ds = load_dataset(
+                ds_name, split="train", streaming=True, revision=revision
+            )
             rows: list[dict[str, Any]] = []
             scanned = 0
             for row in ds:
@@ -347,7 +353,7 @@ class ReviewScraper:
                     break
             raw = pd.DataFrame(rows)
         except Exception:
-            ds = load_dataset(ds_name, split="train")
+            ds = load_dataset(ds_name, split="train", revision=revision)
             raw = ds.to_pandas()
             pkg_col = None
             for c in ("package_name", "appId", "app_id"):

@@ -10,7 +10,7 @@ export function SiteControls() {
   return (
     <div className="fixed right-4 top-4 z-50 flex items-center gap-2 rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] px-2.5 py-1.5 shadow-[var(--shadow)]">
       <label className="sr-only" htmlFor="theme-select">
-        Theme
+        {t("themeLabel")}
       </label>
       <select
         id="theme-select"
@@ -32,6 +32,7 @@ export function SiteControls() {
         title={t("language")}
       >
         <option value="en">EN</option>
+        <option value="ru">RU</option>
         <option value="hy">ՀԱՅ</option>
       </select>
     </div>

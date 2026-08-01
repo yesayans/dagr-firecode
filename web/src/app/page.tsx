@@ -182,7 +182,7 @@ export default function HomePage() {
             >
               {!query.trim() && !searchError && (
                 <li className="px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                  Top apps in catalog · github + closed-source (no public roadmap)
+                  {t("catalogBrowseHint")}
                 </li>
               )}
               {searchError && (
@@ -221,7 +221,7 @@ export default function HomePage() {
                         }`}
                       >
                         {app.roadmap_source === "none"
-                          ? "closed / no roadmap"
+                          ? t("closedNoRoadmap")
                           : app.roadmap_source}
                       </p>
                       <p className="text-xs text-[var(--muted)]">
@@ -306,14 +306,11 @@ export default function HomePage() {
                 </p>
               )}
               {!selected.github_repo && selected.roadmap_source === "web" && (
-                <p className="text-[var(--muted)]">
-                  No repo linked — web changelog / roadmap pages will be used.
-                </p>
+                <p className="text-[var(--muted)]">{t("noRepoWeb")}</p>
               )}
               {selected.roadmap_source === "none" && (
                 <p className="text-amber-800 dark:text-amber-200/90">
-                  Closed-source / no public roadmap — analysis will surface
-                  UNVERIFIED needs from reviews alone.
+                  {t("closedSourceHint")}
                 </p>
               )}
               {selected.sample_review && (
@@ -345,12 +342,7 @@ export default function HomePage() {
 
         {!selected && !resolving && !resolveError && (
           <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)]/50 px-5 py-8 text-center text-sm text-[var(--muted)]">
-            Select an app to resolve its roadmap source, then run analysis.
-            Catalog covers{" "}
-            <span className="text-[var(--foreground)]">github</span>,{" "}
-            <span className="text-[var(--foreground)]">web</span>,{" "}
-            <span className="text-[var(--foreground)]">hybrid</span>, and{" "}
-            <span className="text-[var(--foreground)]">none</span> modes.
+            {t("selectAppHint")}
           </div>
         )}
       </section>
@@ -362,7 +354,7 @@ export default function HomePage() {
         <div className="mb-4 flex items-center gap-3">
           <div className="h-px flex-1 bg-[var(--border)]" />
           <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
-            or bring your own data
+            {t("bringOwnData")}
           </p>
           <div className="h-px flex-1 bg-[var(--border)]" />
         </div>

@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from src.config import Settings, get_settings
 from src.gap_analyzer import CandidateGap
+from src.hiddenness import refresh_insight_score
 from src.need_filter import is_need_bearing
 
 logger = logging.getLogger(__name__)
@@ -25,12 +26,14 @@ NeedSource = Literal["llm", "representative_review"]
 
 
 class LlmGapResponse(BaseModel):
-    latent_need: str
-    verdict: str
+    latent_need: str = Field(max_length=500)
+    verdict: str = Field(max_length=64)
     confidence: float = Field(ge=0, le=100)
-    confidence_justification: str
-    one_sentence_summary: str
-    cited_review_ids: list[str]
+    confidence_justification: str = Field(max_length=2000)
+    one_sentence_summary: str = Field(max_length=500)
+    cited_review_ids: list[str] = Field(default_factory=list, max_length=32)
+    surface_complaint: str = Field(default="", max_length=500)
+    workaround: str = Field(default="", max_length=500)
 
 
 class ExtractedGap(BaseModel):
@@ -49,6 +52,8 @@ class ExtractedGap(BaseModel):
     matched_item: dict[str, Any] | None
     keywords: list[str]
     representative_review_id: str | None = None
+    surface_complaints: list[str] = Field(default_factory=list)
+    workarounds: list[str] = Field(default_factory=list)
 
 
 class LatentNeedExtractor:
@@ -68,20 +73,32 @@ class LatentNeedExtractor:
         roadmap_source: str,
         top_n: int = 5,
     ) -> list[ExtractedGap]:
-        selected = candidates[: max(top_n, 5)]
+        # Candidates are already insight-ranked; take a slightly wider pool then
+        # re-rank extracted gaps by final insight_score (blended confidence).
+        pool_n = max(top_n, 5)
+        selected = candidates[: max(pool_n, 8)]
         if not self.llm_enabled:
             self.degraded.append(
                 "no OPENROUTER_API_KEY; quoting representative reviews"
             )
-            return [
+            extracted = [
                 self._representative_extract(c, reviews_by_id, roadmap_source)
                 for c in selected
             ]
+        else:
+            tasks = [
+                self._extract_one(c, reviews_by_id, roadmap_source) for c in selected
+            ]
+            extracted = list(await asyncio.gather(*tasks))
 
-        tasks = [
-            self._extract_one(c, reviews_by_id, roadmap_source) for c in selected
-        ]
-        return list(await asyncio.gather(*tasks))
+        extracted.sort(
+            key=lambda e: (
+                float(e.metrics.get("insight_score") or 0.0),
+                float(e.confidence),
+            ),
+            reverse=True,
+        )
+        return extracted[:pool_n]
 
     def extract_all_sync(
         self,
@@ -199,14 +216,21 @@ class LatentNeedExtractor:
         metrics = dict(candidate.metrics)
         metrics["llm_confidence"] = llm_conf
         metrics["deterministic_confidence"] = det
+        surface = (parsed.surface_complaint or "").strip()[:500]
+        workaround = (parsed.workaround or "").strip()[:500]
+        if surface:
+            metrics["surface_complaints"] = [surface]
+        if workaround:
+            metrics["workarounds"] = [workaround]
+        refresh_insight_score(metrics, blended)
 
         return ExtractedGap(
-            latent_need=parsed.latent_need.strip(),
+            latent_need=parsed.latent_need.strip()[:500],
             verdict=verdict,
             confidence=blended,
             confidence_rationale=rationale,
-            one_sentence_summary=parsed.one_sentence_summary.strip(),
-            latent_reasoning=parsed.confidence_justification.strip(),
+            one_sentence_summary=parsed.one_sentence_summary.strip()[:500],
+            latent_reasoning=parsed.confidence_justification.strip()[:2000],
             cited_review_ids=cited,
             llm_used=True,
             need_source="llm",
@@ -216,6 +240,8 @@ class LatentNeedExtractor:
             matched_item=candidate.matched_item,
             keywords=candidate.keywords,
             representative_review_id=None,
+            surface_complaints=[surface] if surface else [],
+            workarounds=[workaround] if workaround else [],
         )
 
     def _representative_extract(
@@ -260,6 +286,7 @@ class LatentNeedExtractor:
         )
         metrics = dict(candidate.metrics)
         metrics["llm_confidence"] = None
+        refresh_insight_score(metrics, det)
 
         return ExtractedGap(
             latent_need=quote,
@@ -369,7 +396,11 @@ def _build_prompt(
         f"Closest roadmap item (or null): {json.dumps(matched)}\n"
         f"Reviews (with ids):\n{json.dumps(sample, ensure_ascii=False)}\n\n"
         "Return JSON with keys: latent_need, verdict, confidence (0-100), "
-        "confidence_justification, one_sentence_summary, cited_review_ids.\n"
+        "confidence_justification, one_sentence_summary, cited_review_ids, "
+        "surface_complaint, workaround.\n"
+        "surface_complaint = what users say is wrong (symptoms), not the latent goal.\n"
+        "workaround = hack users describe (website, restart, competitor, manual steps); "
+        "empty string if none. Workarounds are the strongest hidden-need signal.\n"
         "cited_review_ids MUST be a subset of the provided review ids.\n"
         f"In mode 'none' you MUST use verdict UNVERIFIED and justify only from "
         "user-side evidence density."

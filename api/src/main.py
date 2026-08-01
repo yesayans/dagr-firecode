@@ -161,14 +161,34 @@ async def create_custom_app(
         raise HTTPException(status_code=400, detail="max_reviews must be 10–5000")
 
     pkg = _slug_package(name, package_name)
-    raw = await reviews.read()
+    # Stream with a hard size cap so uploads cannot fill memory/disk.
+    max_bytes = int(settings.max_csv_upload_bytes)
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        piece = await reviews.read(1024 * 1024)
+        if not piece:
+            break
+        total += len(piece)
+        if total > max_bytes:
+            raise HTTPException(
+                status_code=413,
+                detail=f"reviews CSV exceeds {max_bytes} byte limit",
+            )
+        chunks.append(piece)
+    raw = b"".join(chunks)
     if not raw:
         raise HTTPException(status_code=400, detail="reviews CSV is empty")
+    filename = reviews.filename or ""
+    if filename and not filename.lower().endswith((".csv", ".txt")):
+        raise HTTPException(
+            status_code=400, detail="reviews file must be a .csv (or .txt)"
+        )
 
     scraper = ReviewScraper(settings)
     try:
         ingested = scraper.ingest_csv(
-            pkg, raw, max_reviews=max_reviews, filename=reviews.filename
+            pkg, raw, max_reviews=max_reviews, filename=filename or None
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e

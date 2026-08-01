@@ -410,6 +410,11 @@ class AnalysisPipeline:
                 )
             if not evidence:
                 continue
+            metrics = dict(ex.metrics)
+            if ex.surface_complaints:
+                metrics["surface_complaints"] = list(ex.surface_complaints)
+            if ex.workarounds:
+                metrics["workarounds"] = list(ex.workarounds)
             rows.append(
                 {
                     "rank": rank,
@@ -420,7 +425,7 @@ class AnalysisPipeline:
                     "confidence_rationale": ex.confidence_rationale,
                     "latent_reasoning": ex.latent_reasoning,
                     "need_source": ex.need_source,
-                    "metrics": ex.metrics,
+                    "metrics": metrics,
                     "evidence": evidence,
                 }
             )

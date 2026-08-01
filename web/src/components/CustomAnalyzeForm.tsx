@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createCustomApp } from "@/lib/api";
 import { RoadmapSourceBadge } from "@/components/RoadmapSourceBadge";
+import { useI18n } from "@/lib/i18n";
 import type { RoadmapSource } from "@/lib/types";
 
 const fieldClass =
@@ -11,6 +12,7 @@ const fieldClass =
 
 export function CustomAnalyzeForm() {
   const router = useRouter();
+  const { t } = useI18n();
   const [, startTransition] = useTransition();
   const [appName, setAppName] = useState("");
   const [packageName, setPackageName] = useState("");
@@ -33,11 +35,11 @@ export function CustomAnalyzeForm() {
     setError(null);
     setInfo(null);
     if (!appName.trim()) {
-      setError("App name is required.");
+      setError(t("appNameRequired"));
       return;
     }
     if (!file) {
-      setError("Upload a reviews CSV.");
+      setError(t("csvRequired"));
       return;
     }
     setSubmitting(true);
@@ -73,18 +75,15 @@ export function CustomAnalyzeForm() {
     >
       <div>
         <h2 className="text-xl font-semibold text-[var(--foreground)]">
-          Analyze your own data
+          {t("customTitle")}
         </h2>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Upload a reviews CSV for any app — including closed-source. Optionally
-          add changelog/roadmap URLs or paste a feature list.
-        </p>
+        <p className="mt-1 text-sm text-[var(--muted)]">{t("customSubtitle")}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block space-y-1.5 sm:col-span-1">
           <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-            App name *
+            {t("appNameLabel")}
           </span>
           <input
             required
@@ -96,7 +95,7 @@ export function CustomAnalyzeForm() {
         </label>
         <label className="block space-y-1.5">
           <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-            Package / id (optional)
+            {t("packageLabel")}
           </span>
           <input
             value={packageName}
@@ -109,7 +108,7 @@ export function CustomAnalyzeForm() {
 
       <label className="block space-y-1.5">
         <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-          Reviews CSV *
+          {t("reviewsCsvLabel")}
         </span>
         <input
           type="file"
@@ -118,14 +117,13 @@ export function CustomAnalyzeForm() {
           className="block w-full text-sm text-[var(--foreground)] file:mr-4 file:rounded-lg file:border-0 file:bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[var(--accent)] hover:file:opacity-90"
         />
         <span className="block text-xs text-[var(--muted)]">
-          Auto-detects columns like review/text/body, rating/stars, date.
-          5-star and under-10-word reviews are dropped.
+          {t("reviewsCsvHint")}
         </span>
       </label>
 
       <label className="block space-y-1.5">
         <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-          Roadmap / changelog URLs (optional)
+          {t("roadmapUrlsLabel")}
         </span>
         <textarea
           value={roadmapUrls}
@@ -138,7 +136,7 @@ export function CustomAnalyzeForm() {
 
       <label className="block space-y-1.5">
         <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-          Paste roadmap / upcoming features (optional)
+          {t("roadmapPasteLabel")}
         </span>
         <textarea
           value={roadmapText}
@@ -148,8 +146,7 @@ export function CustomAnalyzeForm() {
           className={fieldClass}
         />
         <span className="block text-xs text-[var(--muted)]">
-          One item per line (or blank-line paragraphs). Used when the app has no
-          public GitHub roadmap.
+          {t("roadmapPasteHint")}
         </span>
       </label>
 
@@ -190,7 +187,7 @@ export function CustomAnalyzeForm() {
         disabled={submitting}
         className="inline-flex w-full items-center justify-center rounded-xl bg-[var(--accent)] px-6 py-3.5 text-base font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto dark:text-zinc-950"
       >
-        {submitting ? "Uploading & analyzing…" : "Upload & analyze"}
+        {submitting ? t("uploading") : t("uploadAnalyze")}
       </button>
     </form>
   );

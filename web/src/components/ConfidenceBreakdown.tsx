@@ -42,9 +42,12 @@ function formatRawInput(label: string, value: number | null): string {
   if (value === null) return "—";
   switch (label) {
     case "cluster_size":
+    case "explicit_requests":
       return String(Math.round(value));
     case "cluster_share":
     case "best_similarity":
+    case "insight_score":
+    case "hiddenness":
       return formatSigFigs(value, 3);
     case "mean_rating":
     case "rating_spread":
@@ -210,6 +213,9 @@ export function ConfidenceBreakdown({
               ["mean_rating", metrics.mean_rating],
               ["rating_spread", metrics.rating_spread],
               ["cohesion", metrics.cohesion],
+              ["hiddenness", metrics.hiddenness ?? null],
+              ["insight_score", metrics.insight_score ?? null],
+              ["explicit_requests", metrics.explicit_request_count ?? null],
             ] as const
           ).map(([label, value]) => (
             <div
