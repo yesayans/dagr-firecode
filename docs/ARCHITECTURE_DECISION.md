@@ -94,6 +94,37 @@ Next.js + FastAPI extends to auth, multi-tenant SaaS, mobile clients, and richer
 **main:** roadmap matching disabled (all UNVERIFIED); no explicit hiddenness; LLM can blend confidence; ingest drops 5★ (skew); weaker segmentation; flatter module layout.  
 **alternative:** no roadmap cross-ref / verdicts; Streamlit UX ceiling; product thesis drift from “gap vs roadmap.”
 
+#### Resolved since this decision
+
+The two lists above record the state on 2026-07-31 and are left unedited. What has
+changed since:
+
+- **“no explicit hiddenness”** — resolved in `c914472`. `api/src/hiddenness.py`
+  annotates every gap and `insight_score` drives ranking.
+- **“ingest drops 5★ (skew)”** — resolved in `499b06c`, and it was worse than
+  “skew”. `need_filter.is_need_bearing` already decides what is analysable, and
+  decides it better: it keeps a 5★ review voicing a want and rejects pure praise
+  even at 4★. Dropping by rating first ran *before* that filter, so it destroyed
+  the polite unmet-want signal the product exists to surface, and left the UI
+  rendering a 1–5★ histogram whose 5★ bar was permanently zero. The committed
+  parquet caches were themselves post-filter, so refreshing them took the demo
+  corpus from 2,218 to 5,515 reviews — 60% had been discarded — recovering 246
+  reviews with unambiguous want language. Rating is a statistic; need-bearing is
+  the analysis filter.
+- **Related, found while fixing the above:** a missing rating defaulted to 3.0,
+  pinning `severity` at 0.50 and `spread` at 0.00 and freezing 35% of the
+  confidence weight, so confidence became a pure function of cluster size.
+  Unknown ratings now stay unknown and `compute_confidence` renormalises over
+  the components it can actually measure.
+
+Still open from the deferred list: segmentation, optional HDBSCAN backend,
+BM25+vector chat retrieval, precomputed demo jobs, package layering under
+`api/src/`. Two of those were re-assessed against the current code and are lower
+value than they look here: the chat builds a *complete* evidence pack from a
+job's gaps rather than retrieving, so hybrid retrieval would add a miss-the-passage
+failure mode at a scale that does not need it; and a live job now completes in
+~12s, so precompute solves a latency problem this stack does not have.
+
 ---
 
 ## Phase 3 — Recommendation
