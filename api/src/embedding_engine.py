@@ -312,6 +312,7 @@ class EmbeddingEngine:
         keywords = _top_tfidf_keywords(member_texts, top_n=8)
         member_ids = reviews_df.loc[mask, "review_id"].tolist()
         ratings = reviews_df.loc[mask, "rating"].astype(float)
+        known_ratings = ratings.dropna()
         nb = reviews_df.loc[mask, "need_bearing"]
         need_share = float(nb.astype(bool).mean()) if len(nb) else 1.0
         return {
@@ -321,8 +322,18 @@ class EmbeddingEngine:
             "cohesion": cohesion,
             "keywords": keywords,
             "review_ids": member_ids,
-            "mean_rating": float(ratings.mean()) if len(ratings) else 3.0,
-            "rating_spread": float(ratings.nunique() / 5.0) if len(ratings) else 0.0,
+            # `ratings` may contain NaN for reviews whose source had no rating
+            # column. pandas' mean/nunique already skip NaN, but a cluster where
+            # *every* rating is unknown must not fall back to a neutral 3.0 —
+            # that fabricates a severity signal. `None` propagates the unknown so
+            # `compute_confidence` can drop severity/spread from the weighting
+            # instead of scoring them from invented data.
+            "mean_rating": (
+                float(known_ratings.mean()) if len(known_ratings) else None
+            ),
+            "rating_spread": (
+                float(known_ratings.nunique() / 5.0) if len(known_ratings) else None
+            ),
             "need_bearing_share": need_share,
             "member_indices": np.where(mask)[0].tolist(),
             "representative_text": _most_central_text(member_texts, members, centroid),

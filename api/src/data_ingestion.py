@@ -274,13 +274,12 @@ class ReviewScraper:
         if parsed.df.empty:
             raise ValueError(
                 "No usable reviews after filtering. Need a text column with "
-                "reviews of at least 10 words (5-star reviews are dropped)."
+                "reviews of at least 10 words."
             )
         filtered = self._filter_dedupe(parsed.df, package_name, max_reviews)
         if filtered.empty:
             raise ValueError(
-                "No reviews remained after dropping short texts, 5-star ratings, "
-                "and duplicates."
+                "No reviews remained after dropping short texts and duplicates."
             )
         self._write_cache(package_name, filtered, provenance="csv_upload")
         warnings = list(parsed.warnings)
@@ -406,8 +405,16 @@ class ReviewScraper:
                 rating_f = float(rating) if rating is not None else None
             except (TypeError, ValueError):
                 rating_f = None
-            if rating_f is not None and rating_f >= 5.0:
-                continue
+            # 5-star reviews are deliberately NOT dropped here.
+            #
+            # Ingest used to discard every rating >= 5, on the theory that praise
+            # carries no complaint. But `need_filter.is_need_bearing` already
+            # makes that judgement, and makes it better: it keeps a 5-star review
+            # that voices a want ("love it, but I wish it exported to CSV") and
+            # rejects pure praise even at 4 stars. Dropping by rating first threw
+            # away exactly the polite unmet-want signal this product exists to
+            # find, and left the rating histogram with a permanently empty 5-star
+            # bar. Rating is a *stat*; need-bearing is the analysis filter.
             norm = _norm_text(text)
             if norm in seen_norm:
                 continue
@@ -420,7 +427,13 @@ class ReviewScraper:
                 {
                     "review_id": rid,
                     "review_text": text,
-                    "rating": rating_f if rating_f is not None else 3.0,
+                    # NaN, not 3.0. Substituting a neutral rating invents data:
+                    # it pins `severity` at 0.50 and `spread` at 0.00 for every
+                    # cluster, which is 35% of the confidence weight turned into
+                    # a constant, and confidence degenerates into "how big is the
+                    # cluster". Unknown must stay unknown so downstream code can
+                    # skip it rather than average it in.
+                    "rating": rating_f if rating_f is not None else float("nan"),
                     "created_at": created,
                 }
             )
