@@ -120,6 +120,24 @@ mentions a latent goal remains eligible. Job `stats` reports:
 Each gap's `metrics.need_bearing_share` is the share of that cluster's members that
 were classified need-bearing (1.0 when clustering the filtered set only).
 
+### Hiddenness & insight ranking (review-side)
+
+Ported from the alternative (`aipm`) analysis path. Complements — does not replace —
+the five-component confidence formula.
+
+| field | definition |
+|---|---|
+| `explicit_request_count` | member reviews matching explicit feature-request markers |
+| `mention_count` | cluster member review count used for the ratio |
+| `hiddenness` | `1 - explicit_request_count / mention_count` (0–1) |
+| `insight_score` | `hiddenness × (confidence / 100)` using final stored confidence |
+
+Gaps are ranked by `insight_score` (then confidence) so loud explicit requests do not
+dominate the board. Optional LLM fields persisted on `metrics`:
+
+- `surface_complaints: string[]` — what users say is wrong
+- `workarounds: string[]` — hacks users describe (strongest hidden-need signal)
+
 ## 5. Hard rules
 
 1. No gap is written without **at least one** linked `gap_evidence` row. Enforce in code

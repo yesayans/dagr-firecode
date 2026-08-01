@@ -7,6 +7,7 @@ comparable across the target app and the null model, and cacheable per roadmap.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import pickle
@@ -64,9 +65,70 @@ class MatchingSpace:
 
 
 def _artifact_paths(settings: Settings, rhash: str) -> tuple[Path, Path]:
-    root = settings.data_dir / "cache" / "null_thresholds"
+    root = (settings.data_dir / "cache" / "null_thresholds").resolve()
     root.mkdir(parents=True, exist_ok=True)
-    return root / f"{rhash}.json", root / f"{rhash}.pkl"
+    # Filename is our own hex hash — reject path separators just in case.
+    safe = "".join(c for c in rhash if c.isalnum())[:32] or "empty"
+    return root / f"{safe}.json", root / f"{safe}.pkl"
+
+
+def _assert_under_cache(path: Path, settings: Settings) -> Path:
+    root = (settings.data_dir / "cache" / "null_thresholds").resolve()
+    resolved = path.resolve()
+    if not resolved.is_relative_to(root):
+        raise ValueError(f"cache path escapes null_thresholds dir: {resolved}")
+    return resolved
+
+
+def _sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _load_cached_space(
+    meta_path: Path,
+    pkl_path: Path,
+    texts: list[str],
+    pct: float,
+    settings: Settings,
+) -> MatchingSpace | None:
+    meta_path = _assert_under_cache(meta_path, settings)
+    pkl_path = _assert_under_cache(pkl_path, settings)
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    if meta.get("method") != "review_agree_mean_top1":
+        return None
+    if float(meta.get("percentile", -1)) != pct:
+        return None
+    expected = meta.get("artifact_sha256")
+    if not expected or not isinstance(expected, str):
+        # Legacy caches without integrity hash — refuse and rebuild.
+        logger.info("matching-space cache missing artifact_sha256; rebuilding")
+        return None
+    raw = pkl_path.read_bytes()
+    if _sha256_bytes(raw) != expected:
+        logger.warning("matching-space cache integrity mismatch; rebuilding")
+        return None
+    # Local cache only; path confined + SHA-256 integrity checked above.
+    blob = pickle.loads(raw)  # nosec B301
+    if not isinstance(blob, dict) or "vec" not in blob or "svd" not in blob:
+        return None
+    cal_keys = {
+        "threshold",
+        "percentile",
+        "n_control_clusters",
+        "n_control_reviews",
+        "scores",
+        "roadmap_hash",
+        "control_packages",
+        "method",
+    }
+    cal = {k: meta[k] for k in cal_keys if k in meta}
+    return MatchingSpace(
+        vec=blob["vec"],
+        svd=blob["svd"],
+        item_emb=np.asarray(blob["item_emb"]),
+        roadmap_texts=texts,
+        null=NullCalibration.from_dict(cal),
+    )
 
 
 def build_matching_space(
@@ -89,20 +151,9 @@ def build_matching_space(
 
     if use_cache and meta_path.exists() and pkl_path.exists():
         try:
-            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-            if (
-                meta.get("method") == "review_agree_mean_top1"
-                and float(meta.get("percentile", -1)) == pct
-            ):
-                with pkl_path.open("rb") as f:
-                    blob = pickle.load(f)
-                return MatchingSpace(
-                    vec=blob["vec"],
-                    svd=blob["svd"],
-                    item_emb=np.asarray(blob["item_emb"]),
-                    roadmap_texts=texts,
-                    null=NullCalibration.from_dict(meta),
-                )
+            cached = _load_cached_space(meta_path, pkl_path, texts, pct, settings)
+            if cached is not None:
+                return cached
         except Exception as e:
             logger.warning("matching-space cache miss/unreadable (%s)", e)
 
@@ -155,9 +206,17 @@ def build_matching_space(
 
     if use_cache and texts:
         try:
-            meta_path.write_text(json.dumps(null.to_dict(), indent=2), encoding="utf-8")
-            with pkl_path.open("wb") as f:
-                pickle.dump({"vec": vec, "svd": svd, "item_emb": item_emb}, f)
+            meta_path = _assert_under_cache(meta_path, settings)
+            pkl_path = _assert_under_cache(pkl_path, settings)
+            payload = pickle.dumps(
+                {"vec": vec, "svd": svd, "item_emb": item_emb},
+                protocol=pickle.HIGHEST_PROTOCOL,
+            )
+            meta = null.to_dict()
+            meta["method"] = "review_agree_mean_top1"
+            meta["artifact_sha256"] = _sha256_bytes(payload)
+            pkl_path.write_bytes(payload)
+            meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
         except Exception as e:
             logger.warning("matching-space cache write failed: %s", e)
 

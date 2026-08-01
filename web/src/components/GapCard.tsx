@@ -41,6 +41,18 @@ export function GapCard({
     ? gap.metrics.keywords
     : [];
   const templateGenerated = !llmUsed;
+  const surfaces = Array.isArray(gap.metrics.surface_complaints)
+    ? gap.metrics.surface_complaints.filter(Boolean)
+    : [];
+  const workarounds = Array.isArray(gap.metrics.workarounds)
+    ? gap.metrics.workarounds.filter(Boolean)
+    : [];
+  const hiddenness =
+    typeof gap.metrics.hiddenness === "number" ? gap.metrics.hiddenness : null;
+  const insight =
+    typeof gap.metrics.insight_score === "number"
+      ? gap.metrics.insight_score
+      : null;
 
   return (
     <article className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
@@ -94,6 +106,31 @@ export function GapCard({
           <p className="max-w-3xl text-base leading-relaxed text-[var(--muted)]">
             {gap.one_sentence_summary}
           </p>
+
+          {(surfaces.length > 0 || workarounds.length > 0) && (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {surfaces.length > 0 && (
+                <div className="rounded-md border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                    Surface complaint
+                  </p>
+                  <p className="mt-1 text-sm leading-snug text-[var(--foreground)]">
+                    {surfaces[0]}
+                  </p>
+                </div>
+              )}
+              {workarounds.length > 0 && (
+                <div className="rounded-md border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                    Workaround
+                  </p>
+                  <p className="mt-1 text-sm leading-snug text-[var(--foreground)]">
+                    {workarounds[0]}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {showMatch && (
             <div className="rounded-md border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3">
@@ -150,6 +187,12 @@ export function GapCard({
           {gap.metrics.llm_confidence == null && (
             <p className="mt-2 font-mono text-[11px] uppercase tracking-wide text-[var(--muted)]">
               deterministic
+            </p>
+          )}
+          {hiddenness != null && (
+            <p className="mt-3 font-mono text-xs text-[var(--muted)]">
+              hiddenness {Math.round(hiddenness * 100)}%
+              {insight != null ? ` · insight ${insight.toFixed(2)}` : ""}
             </p>
           )}
         </div>

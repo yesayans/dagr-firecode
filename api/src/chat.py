@@ -74,9 +74,17 @@ def build_evidence_pack(job: dict[str, Any], *, max_chars: int = MAX_PACK_CHARS)
             f"Need: {g.get('need') or ''}",
             f"Verdict: {g.get('verdict') or ''}",
             f"Confidence: {g.get('confidence')}",
+            f"Hiddenness: {metrics.get('hiddenness')}",
+            f"Insight score: {metrics.get('insight_score')}",
             f"Summary: {g.get('one_sentence_summary') or ''}",
             f"Keywords: {', '.join(metrics.get('keywords') or g.get('keywords') or [])}",
         ]
+        surfaces = metrics.get("surface_complaints") or []
+        workarounds = metrics.get("workarounds") or []
+        if surfaces:
+            block.append(f"Surface complaints: {'; '.join(str(s) for s in surfaces)}")
+        if workarounds:
+            block.append(f"Workarounds: {'; '.join(str(w) for w in workarounds)}")
         if matched:
             block.append(
                 f"Matched roadmap: {matched} "

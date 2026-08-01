@@ -97,6 +97,15 @@ class Settings(BaseSettings):
 
     max_reviews: int = Field(default=2000, alias="MAX_REVIEWS")
     hf_dataset: str = Field(default="sealuzh/app_reviews", alias="HF_DATASET")
+    # Pin Hub revision so dataset contents cannot silently change under us (B615).
+    hf_dataset_revision: str = Field(
+        default="9eaa95f66364367e8752b0f34c00f67aafa95d15",
+        alias="HF_DATASET_REVISION",
+    )
+    # Reject oversized CSV uploads (bytes) on /apps/custom.
+    max_csv_upload_bytes: int = Field(
+        default=10 * 1024 * 1024, alias="MAX_CSV_UPLOAD_BYTES"
+    )
 
     _resolved_github_token: str | None = PrivateAttr(default=None)
     _github_token_source: GitHubTokenSource = PrivateAttr(default="none")

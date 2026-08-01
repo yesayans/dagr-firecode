@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 from src.config import Settings, get_settings
+from src.hiddenness import annotate_metrics_hiddenness
 from src.matching_space import MatchingSpace
 from src.review_match import (
     AggregatedMatch,
@@ -367,6 +368,9 @@ class GapMatrix:
                 "later_addressed_by": later,
                 "validated_by_later_roadmap": later is not None,
             }
+            annotate_metrics_hiddenness(
+                metrics, self._member_texts(cluster, reviews_df)
+            )
             candidates.append(
                 CandidateGap(
                     cluster_id=cluster["cluster_id"],
@@ -384,7 +388,11 @@ class GapMatrix:
             )
 
         candidates.sort(
-            key=lambda c: c.metrics["deterministic_confidence"], reverse=True
+            key=lambda c: (
+                float(c.metrics.get("insight_score") or 0.0),
+                float(c.metrics.get("deterministic_confidence") or 0.0),
+            ),
+            reverse=True,
         )
         return candidates
 
@@ -455,6 +463,9 @@ class GapMatrix:
                 "later_addressed_by": None,
                 "validated_by_later_roadmap": False,
             }
+            annotate_metrics_hiddenness(
+                metrics, self._member_texts(cluster, reviews_df)
+            )
             out.append(
                 CandidateGap(
                     cluster_id=cluster["cluster_id"],
@@ -470,7 +481,13 @@ class GapMatrix:
                     cluster_size=cluster["size"],
                 )
             )
-        out.sort(key=lambda c: c.metrics["deterministic_confidence"], reverse=True)
+        out.sort(
+            key=lambda c: (
+                float(c.metrics.get("insight_score") or 0.0),
+                float(c.metrics.get("deterministic_confidence") or 0.0),
+            ),
+            reverse=True,
+        )
         return out
 
     def _accepts_match(self, agg: AggregatedMatch | None) -> bool:

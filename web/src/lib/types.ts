@@ -82,6 +82,14 @@ export interface GapMetrics {
   reference_date: string;
   later_addressed_by: LaterAddressedBy | null;
   validated_by_later_roadmap: boolean;
+  /** 0–1; share of mentions that are *not* explicit feature requests */
+  hiddenness?: number;
+  explicit_request_count?: number;
+  mention_count?: number;
+  /** hiddenness × (confidence / 100); drives gap ranking */
+  insight_score?: number;
+  surface_complaints?: string[];
+  workarounds?: string[];
 }
 
 export interface Gap {
