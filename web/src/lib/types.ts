@@ -105,6 +105,30 @@ export interface Gap {
   evidence: EvidenceItem[];
 }
 
+export interface TranslatedEvidence {
+  evidence_id: string;
+  title: string;
+  snippet: string;
+}
+
+export interface TranslatedGap {
+  gap_id: string;
+  need: string;
+  one_sentence_summary: string;
+  latent_reasoning: string;
+  confidence_rationale: string;
+  surface_complaints: string[];
+  workarounds: string[];
+  evidence: TranslatedEvidence[];
+}
+
+export interface TranslateResponse {
+  locale: "en" | "ru" | "hy" | string;
+  summary: string;
+  gaps: TranslatedGap[];
+  model: string | null;
+}
+
 export interface JobCharts {
   period: "year" | "month" | string;
   reviews_by_period: { period: string; count: number }[];

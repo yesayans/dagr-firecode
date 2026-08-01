@@ -14,6 +14,7 @@ import type {
   Job,
   ResolveAppRequest,
   Stage,
+  TranslateResponse,
 } from "./types";
 import { STAGE_SEQUENCE } from "./types";
 
@@ -351,4 +352,73 @@ export async function postJobChat(
   }
   setMode("live");
   return res.json() as Promise<ChatResponse>;
+}
+
+export async function postJobTranslate(
+  jobId: string,
+  locale: "en" | "ru" | "hy",
+): Promise<TranslateResponse> {
+  if (FORCE_MOCK || getDataMode() === "mock") {
+    setMode("mock");
+    await delay(250);
+    const job =
+      mockRuns.get(jobId)?.job ??
+      (await import("./mocks")).MOCK_JOBS[jobId];
+    if (!job) throw new Error(`Unknown mock job: ${jobId}`);
+    const baseSummary = job.summary ?? "";
+    return {
+      locale,
+      summary:
+        locale === "en" ? baseSummary : `[${locale}] ${baseSummary}`,
+      gaps: job.gaps.map((g) => ({
+        gap_id: g.id,
+        need: locale === "en" ? g.need : `[${locale}] ${g.need}`,
+        one_sentence_summary:
+          locale === "en"
+            ? g.one_sentence_summary
+            : `[${locale}] ${g.one_sentence_summary}`,
+        latent_reasoning:
+          locale === "en"
+            ? g.latent_reasoning
+            : `[${locale}] ${g.latent_reasoning}`,
+        confidence_rationale:
+          locale === "en"
+            ? g.confidence_rationale
+            : `[${locale}] ${g.confidence_rationale}`,
+        surface_complaints: (g.metrics.surface_complaints || []).map((s) =>
+          locale === "en" ? s : `[${locale}] ${s}`,
+        ),
+        workarounds: (g.metrics.workarounds || []).map((s) =>
+          locale === "en" ? s : `[${locale}] ${s}`,
+        ),
+        evidence: g.evidence
+          .filter((e) => e.source_type === "review")
+          .map((e) => ({
+            evidence_id: e.evidence_id,
+            title: e.title || "",
+            snippet:
+              locale === "en"
+                ? e.snippet || ""
+                : `[${locale}] ${e.snippet || ""}`,
+          })),
+      })),
+      model: "mock",
+    };
+  }
+
+  const res = await fetch(`${BASE_URL}/jobs/${jobId}/translate`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ locale }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `API ${res.status} for /jobs/${jobId}/translate`);
+  }
+  setMode("live");
+  return res.json() as Promise<TranslateResponse>;
 }

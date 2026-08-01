@@ -19,6 +19,7 @@ from src.pipeline import AnalysisPipeline, config_hash
 from src.resolver import RoadmapResolver, _split_urls
 from src.review_charts import build_review_charts
 from src.store import get_store, load_catalog, reset_store_singleton
+from src.translate_job import translate_job_analysis
 
 logger = logging.getLogger("dagr")
 logging.basicConfig(level=logging.INFO)
@@ -45,6 +46,10 @@ class ChatHistoryItem(BaseModel):
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
     history: list[ChatHistoryItem] = Field(default_factory=list)
+
+
+class TranslateRequest(BaseModel):
+    locale: str = Field(min_length=2, max_length=8)
 
 
 def _public_app(app: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -457,6 +462,35 @@ async def job_chat(job_id: str, body: ChatRequest) -> dict[str, Any]:
         "citations": [c.model_dump() for c in reply.citations],
         "model": reply.model,
     }
+
+
+@app.post("/jobs/{job_id}/translate")
+async def job_translate(job_id: str, body: TranslateRequest) -> dict[str, Any]:
+    """Translate job summary + gap narrative (and review snippets) into a UI locale."""
+    settings = get_settings()
+    store = get_store(settings)
+    job = store.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="job not found")
+    if job.get("status") != "completed":
+        raise HTTPException(
+            status_code=409,
+            detail=f"job is {job.get('status')}; translate requires completed",
+        )
+    locale = (body.locale or "").strip().lower()
+    if locale not in ("en", "ru", "hy"):
+        raise HTTPException(status_code=400, detail="locale must be en, ru, or hy")
+    if locale != "en" and not settings.llm_enabled:
+        raise HTTPException(
+            status_code=503,
+            detail="LLM is not configured (OPENROUTER_API_KEY / Autorouter)",
+        )
+    try:
+        return await translate_job_analysis(job, locale, settings=settings)  # type: ignore[arg-type]
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
 
 
 def main() -> None:

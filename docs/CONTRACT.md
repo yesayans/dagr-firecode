@@ -257,6 +257,43 @@ Response:
 Errors: `404` unknown job, `409` job not completed, `503` LLM not configured,
 `502` upstream LLM failure.
 
+### `POST /jobs/{job_id}/translate`
+Translate the **written analysis** (job summary, gap need/summary/reasoning,
+surface complaints, workarounds, and review evidence snippets) into a UI locale.
+Does not rewrite scores, verdicts, or IDs. `locale: "en"` returns the original
+English strings without calling the LLM.
+
+Request:
+```json
+{ "locale": "ru" }
+```
+
+Response:
+```json
+{
+  "locale": "ru",
+  "summary": "…",
+  "gaps": [
+    {
+      "gap_id": "<uuid>",
+      "need": "…",
+      "one_sentence_summary": "…",
+      "latent_reasoning": "…",
+      "confidence_rationale": "…",
+      "surface_complaints": ["…"],
+      "workarounds": ["…"],
+      "evidence": [
+        { "evidence_id": "…", "title": "…", "snippet": "…" }
+      ]
+    }
+  ],
+  "model": "gemini-2.5-flash"
+}
+```
+
+Errors: `404` unknown job, `409` job not completed, `400` bad locale,
+`503` LLM not configured (non-`en`), `502` LLM/parse failure.
+
 ### Types
 
 ```ts

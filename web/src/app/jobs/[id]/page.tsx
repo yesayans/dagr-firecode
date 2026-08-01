@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { getJob, startAnalyze } from "@/lib/api";
-import type { Job } from "@/lib/types";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { getJob, postJobTranslate, startAnalyze } from "@/lib/api";
+import { applyJobTranslation } from "@/lib/applyTranslation";
+import type { Job, TranslateResponse } from "@/lib/types";
 import { EvidenceChat } from "@/components/EvidenceChat";
 import { GapCard } from "@/components/GapCard";
 import { ReviewCharts } from "@/components/ReviewCharts";
@@ -19,12 +20,17 @@ const POLL_MS = 1500;
 export default function JobPage() {
   const params = useParams<{ id: string }>();
   const jobId = params.id;
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const [job, setJob] = useState<Job | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [retrying, setRetrying] = useState(false);
+  const [translation, setTranslation] = useState<TranslateResponse | null>(
+    null,
+  );
+  const [translating, setTranslating] = useState(false);
+  const [translateError, setTranslateError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -39,6 +45,42 @@ export default function JobPage() {
       setLoading(false);
     }
   }, [jobId]);
+
+  useEffect(() => {
+    // Locale switch invalidates a previous translation target.
+    setTranslation(null);
+    setTranslateError(null);
+  }, [locale, jobId]);
+
+  const displayJob = useMemo(
+    () => (job ? applyJobTranslation(job, translation) : null),
+    [job, translation],
+  );
+
+  async function handleTranslate() {
+    if (!job || job.status !== "completed") return;
+    if (translation && translation.locale === locale) {
+      setTranslation(null);
+      setTranslateError(null);
+      return;
+    }
+    if (locale === "en") {
+      setTranslation(null);
+      return;
+    }
+    setTranslating(true);
+    setTranslateError(null);
+    try {
+      const next = await postJobTranslate(job.id, locale);
+      setTranslation(next);
+    } catch (err) {
+      setTranslateError(
+        err instanceof Error ? err.message : t("translateError"),
+      );
+    } finally {
+      setTranslating(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -97,17 +139,21 @@ export default function JobPage() {
     );
   }
 
-  if (!job) return null;
+  if (!job || !displayJob) return null;
 
-  const isNone = job.roadmap_source === "none";
-  const running = job.status === "queued" || job.status === "running";
-  const failed = job.status === "failed";
-  const completed = job.status === "completed";
+  const isNone = displayJob.roadmap_source === "none";
+  const running = displayJob.status === "queued" || displayJob.status === "running";
+  const failed = displayJob.status === "failed";
+  const completed = displayJob.status === "completed";
   const reviewWindow = formatReviewWindow(
-    job.stats.review_window_start,
-    job.stats.review_window_end,
+    displayJob.stats.review_window_start,
+    displayJob.stats.review_window_end,
   );
-  const degraded = Array.isArray(job.stats.degraded) ? job.stats.degraded : [];
+  const degraded = Array.isArray(displayJob.stats.degraded)
+    ? displayJob.stats.degraded
+    : [];
+  const translationActive =
+    !!translation && translation.locale === locale && locale !== "en";
 
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-10 sm:px-10 sm:py-14">
@@ -118,7 +164,7 @@ export default function JobPage() {
         >
           {t("newAnalysis")}
         </Link>
-        <p className="font-mono text-xs text-[var(--muted)]">{job.id}</p>
+        <p className="font-mono text-xs text-[var(--muted)]">{displayJob.id}</p>
       </div>
 
       <header className="animate-fade-up space-y-4">
@@ -128,10 +174,10 @@ export default function JobPage() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-4xl font-semibold tracking-tight text-[var(--foreground)] sm:text-5xl">
-              {job.app.display_name}
+              {displayJob.app.display_name}
             </h1>
             <p className="mt-1 font-mono text-sm text-[var(--muted)]">
-              {job.app.package_name}
+              {displayJob.app.package_name}
             </p>
             <p className="mt-3 font-mono text-sm text-[var(--muted)]">
               {reviewWindow
@@ -139,18 +185,21 @@ export default function JobPage() {
                 : "reviews: window unknown"}
               {" · "}
               roadmap: live
-              {job.stats.review_provenance
-                ? ` · source ${job.stats.review_provenance}`
+              {displayJob.stats.review_provenance
+                ? ` · source ${displayJob.stats.review_provenance}`
                 : ""}
             </p>
           </div>
-          <RoadmapSourceBadge source={job.roadmap_source} />
+          <RoadmapSourceBadge source={displayJob.roadmap_source} />
         </div>
       </header>
 
       {running && (
         <section className="animate-fade-up mt-10 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-8">
-          <StagePipeline stage={job.stage} progress={job.progress} />
+          <StagePipeline
+            stage={displayJob.stage}
+            progress={displayJob.progress}
+          />
         </section>
       )}
 
@@ -163,7 +212,7 @@ export default function JobPage() {
             {t("analysisFailed")}
           </h2>
           <p className="text-sm leading-relaxed text-red-800/90 dark:text-red-100/90">
-            {job.error ?? error ?? "Unknown error"}
+            {displayJob.error ?? error ?? "Unknown error"}
           </p>
           <button
             type="button"
@@ -178,18 +227,18 @@ export default function JobPage() {
 
       {completed && (
         <div className="mt-10 space-y-8 animate-fade-up">
-          {job.summary && (
+          {displayJob.summary && (
             <p className="max-w-3xl text-lg leading-relaxed text-[var(--muted)]">
-              {job.summary}
+              {displayJob.summary}
             </p>
           )}
 
           <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              [t("reviews"), job.stats.total_reviews],
-              [t("clusters"), job.stats.clusters],
-              [t("roadmapItems"), job.stats.roadmap_items],
-              [t("elapsed"), `${job.stats.elapsed_s}s`],
+              [t("reviews"), displayJob.stats.total_reviews],
+              [t("clusters"), displayJob.stats.clusters],
+              [t("roadmapItems"), displayJob.stats.roadmap_items],
+              [t("elapsed"), `${displayJob.stats.elapsed_s}s`],
             ].map(([label, value]) => (
               <div
                 key={String(label)}
@@ -206,11 +255,11 @@ export default function JobPage() {
           </dl>
 
           <ReviewCharts
-            charts={job.stats.charts}
-            gaps={job.gaps}
-            reviewsNeedBearing={job.stats.reviews_need_bearing}
+            charts={displayJob.stats.charts}
+            gaps={displayJob.gaps}
+            reviewsNeedBearing={displayJob.stats.reviews_need_bearing}
             totalReviews={
-              job.stats.reviews_total ?? job.stats.total_reviews
+              displayJob.stats.reviews_total ?? displayJob.stats.total_reviews
             }
           />
 
@@ -232,41 +281,84 @@ export default function JobPage() {
 
           {isNone && <UnverifiedNotice />}
 
-          <div className="space-y-2">
-            <h2 className="text-2xl font-semibold tracking-tight text-[var(--foreground)] sm:text-3xl">
-              {isNone ? t("gapTitleNone") : t("gapTitle")}
-            </h2>
-            <p className="text-sm text-[var(--muted)]">
-              {job.gaps.length} gaps · embedding {job.stats.embedding_backend}
-              {job.stats.llm_used
-                ? " · LLM extract on"
-                : " · deterministic extract (no LLM)"}
-            </p>
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div className="space-y-2">
+                <h2 className="text-2xl font-semibold tracking-tight text-[var(--foreground)] sm:text-3xl">
+                  {isNone ? t("gapTitleNone") : t("gapTitle")}
+                </h2>
+                <p className="text-sm text-[var(--muted)]">
+                  {displayJob.gaps.length} gaps · embedding{" "}
+                  {displayJob.stats.embedding_backend}
+                  {displayJob.stats.llm_used
+                    ? " · LLM extract on"
+                    : " · deterministic extract (no LLM)"}
+                </p>
+              </div>
+              {locale !== "en" && (
+                <div className="flex max-w-md flex-col items-end gap-2">
+                  <button
+                    type="button"
+                    onClick={handleTranslate}
+                    disabled={translating}
+                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-60"
+                  >
+                    <span
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-[var(--surface-muted)] font-mono text-[10px]"
+                      aria-hidden
+                    >
+                      AI
+                    </span>
+                    {translating
+                      ? t("translatingAnalysis")
+                      : translationActive
+                        ? t("showOriginalAnalysis")
+                        : t("translateAnalysis")}
+                  </button>
+                  {!translationActive && (
+                    <p className="text-right text-xs leading-snug text-[var(--muted)]">
+                      {t("translateHint")}
+                    </p>
+                  )}
+                  {translationActive && (
+                    <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--accent)]">
+                      {t("translatedBadge")}
+                      {translation?.model ? ` · ${translation.model}` : ""}
+                    </p>
+                  )}
+                  {translateError && (
+                    <p className="text-right text-xs text-red-600 dark:text-red-300">
+                      {t("translateError")}: {translateError}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
-          {job.gaps.length === 0 ? (
+          {displayJob.gaps.length === 0 ? (
             <div className="rounded-xl border border-dashed border-[var(--border)] px-5 py-10 text-center text-[var(--muted)]">
               {t("noGaps")}
             </div>
           ) : (
             <div className="space-y-5">
-              {job.gaps.map((gap, i) => (
+              {displayJob.gaps.map((gap, i) => (
                 <GapCard
                   key={gap.id}
                   gap={gap}
-                  roadmapSource={job.roadmap_source}
-                  llmUsed={job.stats.llm_used}
+                  roadmapSource={displayJob.roadmap_source}
+                  llmUsed={displayJob.stats.llm_used}
                   defaultExpanded={i === 0}
                 />
               ))}
             </div>
           )}
 
-          <EvidenceChat jobId={job.id} />
+          <EvidenceChat jobId={displayJob.id} />
         </div>
       )}
 
-      {error && job && (
+      {error && displayJob && (
         <p className="mt-6 text-sm text-amber-700 dark:text-amber-300">
           Poll warning: {error}
         </p>
